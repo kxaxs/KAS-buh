@@ -42,6 +42,10 @@ public class KasAlarmReceiver extends BroadcastReceiver {
         // Intent to open app when notification tapped
         Intent openIntent = new Intent(context, MainActivity.class);
         openIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        // Tap on the notification opens the exact sale it belongs to
+        if (saleId != null && !saleId.isEmpty()) {
+            openIntent.putExtra("kas_sale_id", saleId);
+        }
         PendingIntent pendingIntent = PendingIntent.getActivity(
             context, id, openIntent,
             PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE

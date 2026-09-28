@@ -23,6 +23,15 @@ public class MainActivity extends BridgeActivity {
         requestExactAlarmPermissionOnce();
     }
 
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        // BridgeActivity does not call setIntent, so do it here: the plugin
+        // reads "kas_sale_id" from getIntent() when the app is resumed by a
+        // notification tap while it was already in memory.
+        setIntent(intent);
+    }
+
     private void createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationManager manager = getSystemService(NotificationManager.class);

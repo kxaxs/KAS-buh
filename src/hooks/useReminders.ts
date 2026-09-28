@@ -18,6 +18,7 @@ export function useReminders({
   onOpenSale,
 }: UseRemindersArgs): { prevFiredSaleId: string | number | null } {
   const [prevFiredSaleId, setPrevFiredSaleId] = useState<string | number | null>(null);
+  const [pendingSaleId, setPendingSaleId] = useState<string | number | null>(null);
 
   useEffect(() => {
     try {
@@ -129,34 +130,69 @@ export function useReminders({
     };
   }, [notifEnabled, notifMinutes, sales]);
 
+  // Opening a sale from a notification tap: the native side puts the saleId
+  // into the activity intent ("kas_sale_id" extra). Consume it on mount
+  // (cold start from a tap) and whenever the app returns to the foreground
+  // (warm start from a tap).
   useEffect(() => {
-    const _check = async () => {
-      const _KN = (window as any).Capacitor?.Plugins?.KasNotification;
-      if (!_KN) return;
+    const consume = async () => {
+      const KN = (window as any).Capacitor?.Plugins?.KasNotification;
+      if (!KN || typeof KN.consumePendingSale !== "function") return;
       try {
-        const r = await _KN.getLastFired();
-        if (r && r.ts > 0) {
-          const _ago = Math.round((Date.now() - r.ts) / 1000);
-          if (_ago < 5 && prevFiredSaleId !== r.saleId) {
-            setPrevFiredSaleId(r.saleId);
-            // App is open — dismiss the visible notification
-            if (r.id && typeof _KN.clear === "function") {
-              try {
-                _KN.clear({ id: r.id }).catch(() => {});
-              } catch {}
-            }
-            const sale = sales.find((s) => String(s.id) === String(r.saleId));
-            if (sale && sale.id !== undefined) {
-              onOpenSale(sale.id);
-            }
-          }
-        }
+        const r = await KN.consumePendingSale();
+        const saleId = r && r.saleId ? r.saleId : "";
+        if (saleId) setPendingSaleId(saleId);
       } catch {}
     };
-    _check();
-    const interval = setInterval(_check, 3000);
-    return () => clearInterval(interval);
-  }, [sales, prevFiredSaleId, onOpenSale]);
+
+    consume(); // cold start
+
+    const onVisible = () => {
+      if (document.visibilityState === "visible") consume();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+
+    let appSub: { remove?: () => void } | undefined;
+    let disposed = false;
+    try {
+      const CapApp = (window as any).Capacitor?.Plugins?.App;
+      if (CapApp && typeof CapApp.addListener === "function") {
+        CapApp.addListener("appStateChange", (s: { isActive?: boolean }) => {
+          if (s && s.isActive) consume();
+        })
+          .then((sub: { remove?: () => void }) => {
+            if (disposed) {
+              try {
+                sub?.remove?.();
+              } catch {}
+            } else {
+              appSub = sub;
+            }
+          })
+          .catch(() => {});
+      }
+    } catch {}
+
+    return () => {
+      disposed = true;
+      document.removeEventListener("visibilitychange", onVisible);
+      try {
+        appSub?.remove?.();
+      } catch {}
+    };
+  }, []);
+
+  // Open the pending sale as soon as it appears in the store (on cold start
+  // the sales may still be loading when the intent extra is read).
+  useEffect(() => {
+    if (pendingSaleId === null || pendingSaleId === "") return;
+    const sale = sales.find((s) => String(s.id) === String(pendingSaleId));
+    if (sale && sale.id !== undefined) {
+      setPrevFiredSaleId(sale.id);
+      onOpenSale(sale.id);
+      setPendingSaleId(null);
+    }
+  }, [pendingSaleId, sales, onOpenSale]);
 
   return { prevFiredSaleId };
 }

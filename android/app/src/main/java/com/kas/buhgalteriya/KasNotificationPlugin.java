@@ -43,6 +43,28 @@ public class KasNotificationPlugin extends Plugin {
     }
 
     @PluginMethod
+    public void consumePendingSale(PluginCall call) {
+        JSObject result = new JSObject();
+        try {
+            String saleId = "";
+            android.app.Activity activity = getActivity();
+            if (activity != null && activity.getIntent() != null) {
+                Intent intent = activity.getIntent();
+                String extra = intent.getStringExtra("kas_sale_id");
+                if (extra != null && !extra.isEmpty()) {
+                    saleId = extra;
+                    // Read-once: later plain resumes must not reopen the sale
+                    intent.removeExtra("kas_sale_id");
+                }
+            }
+            result.put("saleId", saleId);
+            call.resolve(result);
+        } catch (Exception e) {
+            call.reject("consumePendingSale failed: " + e.getMessage());
+        }
+    }
+
+    @PluginMethod
     public void schedule(PluginCall call) {
         try {
             int id = call.getInt("id", 0);
