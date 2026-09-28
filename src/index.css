@@ -1,0 +1,93 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 240 10% 8%;
+  --foreground: 0 0% 100%;
+  --border: 240 5% 20%;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  background-color: #0f1115;
+  color: #ffffff;
+}
+
+body {
+  margin: 0;
+  font-family: 'Roboto Condensed', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+input, textarea {
+  -webkit-user-select: auto;
+  user-select: auto;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  opacity: 0.5;
+}
+
+input[type="time"].time-input-no-clear::-webkit-clear-button,
+input[type="time"].time-input-no-clear::-webkit-inner-spin-button {
+  display: none;
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+@keyframes notePeekIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.note-peek-anim {
+  animation: notePeekIn 160ms ease-out both;
+}
+
+@keyframes tabSlideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(28px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes tabSlideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(-28px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.tab-slide-left {
+  animation: tabSlideInLeft 220ms ease-out both;
+}
+
+.tab-slide-right {
+  animation: tabSlideInRight 220ms ease-out both;
+}

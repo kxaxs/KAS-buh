@@ -1,0 +1,19 @@
+# Зависимости
+node_modules/
+
+# Артефакты сборки
+dist/
+build/
+*.apk
+*.idsig
+*.tsbuildinfo
+
+# Android / Gradle
+.gradle/
+local.properties
+*.jks
+*.keystore
+
+# Системные файлы
+.DS_Store
+Thumbs.db
