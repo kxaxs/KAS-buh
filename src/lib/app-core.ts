@@ -26,6 +26,20 @@ export const CATEGORY_DOT_COLOR: Record<string, string> = {
   [SALON_PAYROLL_CATEGORY]: "#38bdf8",
 };
 export const CURRENCY = "₽";
+
+/** Текущая версия приложения (держать в синхроне с versionName в android/app/build.gradle). */
+export const APP_VERSION = "2.0.25";
+
+/**
+ * Компактный формат чисел: разряды разделяются ТОНКИМ пробелом (U+2009)
+ * вместо широкого неразрывного, который даёт toLocaleString в ru-локали.
+ * Длинные суммы (период «Год») помещаются в карточки на узких экранах.
+ */
+export const formatNumber = (value: number | string | null | undefined): string => {
+  const num = Number(value ?? 0);
+  if (!Number.isFinite(num)) return String(value ?? "");
+  return num.toLocaleString("ru-RU").replace(/[\u00A0\u202F\u2009]/g, "\u2009");
+};
 export const WEEK_DAYS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 
 export interface PayrollTypeOption {

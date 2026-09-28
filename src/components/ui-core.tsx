@@ -35,7 +35,7 @@ import {
   X,
 } from "lucide-react";
 
-import { APP_ID, SALON_SERVICES_CATEGORY, SALON_PAYROLL_CATEGORY, LEGACY_SALON_CATEGORY, HOME_CATEGORY, KALYM_CATEGORY, CATEGORIES, MARKED_CATEGORIES, CATEGORY_DOT_COLOR, CURRENCY, WEEK_DAYS, PAYROLL_TYPES, BACK_EXIT_DELAY, BACK_LAYER_COOLDOWN, BACK_DEBOUNCE, STORAGE_KEYS, setCapacitorAppRef, exitApp, padNumber, toDateKey, parseDateKey, getToday, getCurrentTime, getExportFileName, formatDate, formatLongDate, formatMonthLabel, shiftMonth, getMonthDays, getSaleDateTime, sortSalesByDateTimeDesc, getPeriodRangeLabel, inferRegisteredAt, normalizeSaleCategory, getPayrollType, normalizeSales, getSaleDisplayName, normalizeClients, normalizeProcedures, getInitialSaleState, getSaleTurnover, getSaleAccrual, getSaleSalonCleanIncome, getSaleIncome, getSaleAnalyticsIncome, getSaleCardAmount, RU_MONTHS_FULL, RU_MONTHS_SHORT, RU_WEEKDAYS, formatHeaderDate, isoToDDMMYYYY, ddmmyyyyToIso } from '../lib/app-core';
+import { APP_ID, SALON_SERVICES_CATEGORY, SALON_PAYROLL_CATEGORY, LEGACY_SALON_CATEGORY, HOME_CATEGORY, KALYM_CATEGORY, CATEGORIES, MARKED_CATEGORIES, CATEGORY_DOT_COLOR, CURRENCY, WEEK_DAYS, PAYROLL_TYPES, BACK_EXIT_DELAY, BACK_LAYER_COOLDOWN, BACK_DEBOUNCE, STORAGE_KEYS, setCapacitorAppRef, exitApp, padNumber, toDateKey, parseDateKey, getToday, getCurrentTime, getExportFileName, formatDate, formatLongDate, formatMonthLabel, shiftMonth, getMonthDays, getSaleDateTime, sortSalesByDateTimeDesc, getPeriodRangeLabel, inferRegisteredAt, normalizeSaleCategory, getPayrollType, normalizeSales, getSaleDisplayName, normalizeClients, normalizeProcedures, getInitialSaleState, getSaleTurnover, getSaleAccrual, getSaleSalonCleanIncome, getSaleIncome, getSaleAnalyticsIncome, getSaleCardAmount, RU_MONTHS_FULL, RU_MONTHS_SHORT, RU_WEEKDAYS, formatHeaderDate, isoToDDMMYYYY, ddmmyyyyToIso, formatNumber } from '../lib/app-core';
 export function DatePickerDialog({ isOpen, value, onClose, onConfirm }) {
   const [selectedIso, setSelectedIso] = useState(value || "");
   const [viewYear, setViewYear] = useState(new Date().getFullYear());
@@ -1135,11 +1135,11 @@ export function SaleCard({ sale, onOpen, customAmount }) {
         <div className="text-right">
           {turnover > 0 && (
             <div className="font-mono text-[15px] font-black leading-tight text-white/90">
-              {turnover.toLocaleString()} {CURRENCY}
+              {formatNumber(turnover)} {CURRENCY}
             </div>
           )}
           <div className="font-mono text-[15px] font-black leading-tight text-[#6B5BAE]">
-            {amount.toLocaleString()} {CURRENCY}
+            {formatNumber(amount)} {CURRENCY}
           </div>
         </div>
       </div>
@@ -1248,11 +1248,11 @@ export function SaleDetailsSheet({
             <div className="text-right">
               {turnover > 0 && (
                 <div className="font-mono text-xs font-black text-white/70">
-                  {turnover.toLocaleString()} {CURRENCY}
+                  {formatNumber(turnover)} {CURRENCY}
                 </div>
               )}
               <div className="font-mono text-lg font-black text-[#6B5BAE]">
-                {summaryAmount.toLocaleString()} {CURRENCY}
+                {formatNumber(summaryAmount)} {CURRENCY}
               </div>
             </div>
           </div>
@@ -1275,14 +1275,14 @@ export function SaleDetailsSheet({
             <div className="flex items-center justify-between rounded-2xl bg-white/5 px-4 py-3 text-sm font-bold">
               <span className="text-gray-400">Доход</span>
               <span className="font-mono text-[#6B5BAE]">
-                {Number(sale.manualIncome || 0).toLocaleString()} {CURRENCY}
+                {formatNumber(Number(sale.manualIncome || 0))} {CURRENCY}
               </span>
             </div>
           ) : isSalonPayroll ? (
             <div className="flex items-center justify-between rounded-2xl bg-sky-500/10 px-4 py-3 text-sm font-bold">
               <span className="text-sky-200">{payrollType.label}</span>
               <span className="font-mono text-sky-300">
-                {cleanIncome.toLocaleString()} {CURRENCY}
+                {formatNumber(cleanIncome)} {CURRENCY}
               </span>
             </div>
           ) : isSalonServices && items.length === 0 ? (
@@ -1302,19 +1302,19 @@ export function SaleDetailsSheet({
                         {item.name}
                       </div>
                       <div className="mt-1 text-[10px] font-black uppercase tracking-widest text-gray-500">
-                        База: {Number(item.price || 0).toLocaleString()}{" "}
+                        База: {formatNumber(Number(item.price || 0))}{" "}
                         {CURRENCY}
                       </div>
                     </div>
                     <div className="text-right">
                       <div className="font-mono text-xs font-black text-white/70">
-                        {Number(
+                        {formatNumber(Number(
                           item.actualPrice || item.price || 0,
-                        ).toLocaleString()}{" "}
+                        ))}{" "}
                         {CURRENCY}
                       </div>
                       <div className="font-mono text-xs font-black text-[#6B5BAE]">
-                        {Number(item.income || 0).toLocaleString()} {CURRENCY}
+                        {formatNumber(Number(item.income || 0))} {CURRENCY}
                       </div>
                     </div>
                   </div>
@@ -1330,7 +1330,7 @@ export function SaleDetailsSheet({
                   Оборот
                 </span>
                 <span className="mt-1 whitespace-nowrap font-mono text-base font-black text-white">
-                  {turnover.toLocaleString()} {CURRENCY}
+                  {formatNumber(turnover)} {CURRENCY}
                 </span>
               </div>
               <div className="inline-flex flex-col rounded-2xl border border-[#6B5BAE]/20 bg-[#6B5BAE]/10 px-3 py-2">
@@ -1338,7 +1338,7 @@ export function SaleDetailsSheet({
                   Начисление
                 </span>
                 <span className="mt-1 whitespace-nowrap font-mono text-base font-black text-[#6B5BAE]">
-                  {accrual.toLocaleString()} {CURRENCY}
+                  {formatNumber(accrual)} {CURRENCY}
                 </span>
               </div>
               <div className="inline-flex flex-col rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-3 py-2">
@@ -1346,7 +1346,7 @@ export function SaleDetailsSheet({
                   Чаевые
                 </span>
                 <span className="mt-1 whitespace-nowrap font-mono text-base font-black text-emerald-300">
-                  {cleanIncome.toLocaleString()} {CURRENCY}
+                  {formatNumber(cleanIncome)} {CURRENCY}
                 </span>
               </div>
             </div>
@@ -1356,7 +1356,7 @@ export function SaleDetailsSheet({
                 Сумма
               </div>
               <div className="mt-2 font-mono text-lg font-black text-sky-300">
-                {cleanIncome.toLocaleString()} {CURRENCY}
+                {formatNumber(cleanIncome)} {CURRENCY}
               </div>
             </div>
           ) : (
@@ -1365,7 +1365,7 @@ export function SaleDetailsSheet({
                 Доход
               </div>
               <div className="mt-2 font-mono text-lg font-black text-[#6B5BAE]">
-                {income.toLocaleString()} {CURRENCY}
+                {formatNumber(income)} {CURRENCY}
               </div>
             </div>
           )}

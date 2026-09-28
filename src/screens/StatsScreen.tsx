@@ -3,7 +3,7 @@ import { useAppUI } from '../context/AppUIContext';
 import { Search, BarChart3, ChevronRight, ChevronLeft, Calendar as CalendarIcon, Check } from 'lucide-react';
 import { InlineDatePickerCard } from '../components/ui-core';
 import { AutoFitText } from '../components/AutoFitText';
-import { CURRENCY, CATEGORIES, getToday, isoToDDMMYYYY, formatMonthLabel } from '../lib/app-core';
+import { CURRENCY, CATEGORIES, getToday, isoToDDMMYYYY, formatMonthLabel, formatNumber } from '../lib/app-core';
 
 export function StatsScreen() {
   const {
@@ -301,7 +301,7 @@ export function StatsScreen() {
               </div>
               
               <AutoFitText
-                text={(periodStats.turnover || 0).toLocaleString()}
+                text={formatNumber((periodStats.turnover || 0))}
                 baseFontSize={35}
                 minFontSize={14}
                 className="text-center font-mono leading-none font-black tracking-tight w-full pb-1 pt-1"
@@ -312,7 +312,7 @@ export function StatsScreen() {
                   Начисление
                 </div>
                 <AutoFitText
-                  text={(periodStats.accrual || 0).toLocaleString()}
+                  text={formatNumber((periodStats.accrual || 0))}
                   baseFontSize={35}
                   minFontSize={14}
                   className="font-mono leading-none font-black text-[#6B5BAE] tracking-tight mt-1 w-full text-center"
@@ -331,7 +331,7 @@ export function StatsScreen() {
                 </p>
               </div>
               <AutoFitText
-                text={(periodStats.income || 0).toLocaleString()}
+                text={formatNumber((periodStats.income || 0))}
                 baseFontSize={32}
                 minFontSize={14}
                 className="w-full text-center font-mono leading-none font-black text-[#6B5BAE] pb-2"
@@ -340,7 +340,7 @@ export function StatsScreen() {
                 <div className="flex items-center justify-between gap-1 font-bold uppercase tracking-wider">
                   <span className="shrink-0 text-[10.5px] text-emerald-400">Домашние</span>
                   <AutoFitText
-                    text={(periodStats.homeIncome || 0).toLocaleString()}
+                    text={formatNumber((periodStats.homeIncome || 0))}
                     baseFontSize={16}
                     minFontSize={9}
                     className="min-w-0 flex-1 text-right font-mono leading-none text-white/85"
@@ -349,7 +349,7 @@ export function StatsScreen() {
                 <div className="flex items-center justify-between gap-1 font-bold uppercase tracking-wider">
                   <span className="shrink-0 text-[10.5px] text-sky-400">Салон зп</span>
                   <AutoFitText
-                    text={(periodStats.salonCleanIncome || 0).toLocaleString()}
+                    text={formatNumber((periodStats.salonCleanIncome || 0))}
                     baseFontSize={16}
                     minFontSize={9}
                     className="min-w-0 flex-1 text-right font-mono leading-none text-white/85"
@@ -358,7 +358,7 @@ export function StatsScreen() {
                 <div className="flex items-center justify-between gap-1 font-bold uppercase tracking-wider">
                   <span className="shrink-0 text-[10.5px] text-pink-400">Чаевые</span>
                   <AutoFitText
-                    text={(periodStats.tipsAmount || 0).toLocaleString()}
+                    text={formatNumber((periodStats.tipsAmount || 0))}
                     baseFontSize={16}
                     minFontSize={9}
                     className="min-w-0 flex-1 text-right font-mono leading-none text-white/85"
@@ -367,7 +367,7 @@ export function StatsScreen() {
                 <div className="flex items-center justify-between gap-1 font-bold uppercase tracking-wider">
                   <span className="shrink-0 text-[10.5px] text-amber-400">Калым</span>
                   <AutoFitText
-                    text={(periodStats.kalymIncome || 0).toLocaleString()}
+                    text={formatNumber((periodStats.kalymIncome || 0))}
                     baseFontSize={16}
                     minFontSize={9}
                     className="min-w-0 flex-1 text-right font-mono leading-none text-white/85"

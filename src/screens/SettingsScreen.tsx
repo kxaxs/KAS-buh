@@ -5,6 +5,7 @@ import { AppUIContext } from '../context/AppUIContext';
 import { 
   CloudDownload, CloudUpload, Trash2, ArrowRight
 } from 'lucide-react';
+import { APP_VERSION } from '../lib/app-core';
 
 export function SettingsScreen() {
   const ui = React.useContext(AppUIContext);
@@ -81,7 +82,7 @@ export function SettingsScreen() {
         </button>
 
         <div className="pt-2 text-center text-[10px] font-bold uppercase tracking-[0.3em] text-white/30">
-          Версия 2.0.2
+          Версия {APP_VERSION}
         </div>
       </div>
     </div>

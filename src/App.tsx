@@ -41,7 +41,7 @@ import {
   X,
 } from "lucide-react";
 
-import { APP_ID, SALON_SERVICES_CATEGORY, SALON_PAYROLL_CATEGORY, LEGACY_SALON_CATEGORY, HOME_CATEGORY, KALYM_CATEGORY, CATEGORIES, MARKED_CATEGORIES, CATEGORY_DOT_COLOR, CURRENCY, WEEK_DAYS, PAYROLL_TYPES, BACK_EXIT_DELAY, BACK_LAYER_COOLDOWN, BACK_DEBOUNCE, STORAGE_KEYS, exitApp, padNumber, toDateKey, parseDateKey, getToday, getCurrentTime, getExportFileName, formatDate, formatLongDate, formatMonthLabel, shiftMonth, getMonthDays, getSaleDateTime, sortSalesByDateTimeDesc, getPeriodRangeLabel, inferRegisteredAt, normalizeSaleCategory, getPayrollType, normalizeSales, getSaleDisplayName, normalizeClients, normalizeProcedures, getInitialSaleState, getSaleTurnover, getSaleAccrual, getSaleSalonCleanIncome, getSaleIncome, getSaleAnalyticsIncome, getSaleCardAmount, RU_MONTHS_FULL, RU_MONTHS_SHORT, RU_WEEKDAYS, formatHeaderDate, isoToDDMMYYYY, ddmmyyyyToIso } from "./lib/app-core";
+import { APP_ID, SALON_SERVICES_CATEGORY, SALON_PAYROLL_CATEGORY, LEGACY_SALON_CATEGORY, HOME_CATEGORY, KALYM_CATEGORY, CATEGORIES, MARKED_CATEGORIES, CATEGORY_DOT_COLOR, CURRENCY, WEEK_DAYS, PAYROLL_TYPES, BACK_EXIT_DELAY, BACK_LAYER_COOLDOWN, BACK_DEBOUNCE, STORAGE_KEYS, exitApp, padNumber, toDateKey, parseDateKey, getToday, getCurrentTime, getExportFileName, formatDate, formatLongDate, formatMonthLabel, shiftMonth, getMonthDays, getSaleDateTime, sortSalesByDateTimeDesc, getPeriodRangeLabel, inferRegisteredAt, normalizeSaleCategory, getPayrollType, normalizeSales, getSaleDisplayName, normalizeClients, normalizeProcedures, getInitialSaleState, getSaleTurnover, getSaleAccrual, getSaleSalonCleanIncome, getSaleIncome, getSaleAnalyticsIncome, getSaleCardAmount, RU_MONTHS_FULL, RU_MONTHS_SHORT, RU_WEEKDAYS, formatHeaderDate, isoToDDMMYYYY, ddmmyyyyToIso, formatNumber } from "./lib/app-core";
 import { DatePickerDialog, TimePickerDialog, BottomSheet, CalendarPicker, ConfirmDialog, NavBtn, AppNav, MonthCalendar, SaleCard, SaleDetailsSheet, InlineDatePickerCard } from './components/ui-core';
 import { useAutosave } from "./hooks/useAutosave";
 import { useBackListener } from "./hooks/useBackListener";
@@ -2764,11 +2764,11 @@ export default function App() {
                     <div className="text-right">
                       <div className="font-mono text-xs font-black text-white/70">
                         {getSaleTurnover(sale) > 0
-                          ? `${getSaleTurnover(sale).toLocaleString()} ${CURRENCY}`
+                          ? `${formatNumber(getSaleTurnover(sale))} ${CURRENCY}`
                           : "—"}
                       </div>
                       <div className="font-mono text-sm font-black text-[#6B5BAE]">
-                        {getSaleCardAmount(sale).toLocaleString()} {CURRENCY}
+                        {formatNumber(getSaleCardAmount(sale))} {CURRENCY}
                       </div>
                     </div>
                   </div>
@@ -2786,12 +2786,12 @@ export default function App() {
                           </span>
                           <div className="flex gap-3">
                             <span className="font-mono text-white/40">
-                              {Number(
+                              {formatNumber(Number(
                                 item.actualPrice || item.price || 0,
-                              ).toLocaleString()}
+                              ))}
                             </span>
                             <span className="font-mono text-[#6B5BAE]">
-                              {Number(item.income || 0).toLocaleString()}
+                              {formatNumber(Number(item.income || 0))}
                             </span>
                           </div>
                         </div>
@@ -2806,7 +2806,7 @@ export default function App() {
                               : "Чаевые"}
                           </span>
                           <span className="font-mono text-emerald-400">
-                            {getSaleSalonCleanIncome(sale).toLocaleString()}{" "}
+                            {formatNumber(getSaleSalonCleanIncome(sale))}{" "}
                             {CURRENCY}
                           </span>
                         </div>
@@ -3255,7 +3255,7 @@ export default function App() {
                             <span className="flex items-center gap-2 text-[10px] opacity-80">
                               <span>{totalCount} шт</span>
                               <span className="font-mono">
-                                {totalSum.toLocaleString()}
+                                {formatNumber(totalSum)}
                               </span>
                             </span>
                           </button>
@@ -3292,7 +3292,7 @@ export default function App() {
                                   <span className="flex flex-shrink-0 items-center gap-2 text-[10px] opacity-80">
                                     <span>{st.count} шт</span>
                                     <span className="font-mono">
-                                      {st.sum.toLocaleString()}
+                                      {formatNumber(st.sum)}
                                     </span>
                                   </span>
                                 </button>
@@ -3359,7 +3359,7 @@ export default function App() {
                               )}
                           </span>
                           <span className="flex-shrink-0 font-mono text-white/80">
-                            {item.value.toLocaleString()} {CURRENCY}
+                            {formatNumber(item.value)} {CURRENCY}
                           </span>
                         </div>
                         <div className="h-3 overflow-hidden rounded-full bg-white/5">
@@ -3448,7 +3448,7 @@ export default function App() {
                           </div>
                           <div className="flex items-baseline gap-1.5">
                             <span className="font-mono text-[11px] font-black text-white">
-                              {item.value.toLocaleString()}
+                              {formatNumber(item.value)}
                             </span>
                             {showCount && (
                               <span className="font-mono text-[10px] font-bold text-white/55">
@@ -3524,7 +3524,7 @@ export default function App() {
                   Сумма
                 </div>
                 <div className="mt-1 font-mono text-xl font-black text-white">
-                  {(reportDrillItem?.value || 0).toLocaleString()} {CURRENCY}
+                  {formatNumber((reportDrillItem?.value || 0))} {CURRENCY}
                 </div>
               </div>
               <div className="text-right">
@@ -3667,13 +3667,13 @@ export default function App() {
               return statsBreakdownType === "turnover" ? (
                 <div className="mt-2 flex items-end justify-between gap-2">
                   <AutoFitText
-                    text={`${breakdownTotal.turnover.toLocaleString()} ${CURRENCY}`}
+                    text={`${formatNumber(breakdownTotal.turnover)} ${CURRENCY}`}
                     baseFontSize={24}
                     minFontSize={12}
                     className="min-w-0 flex-1 font-mono font-black text-white leading-none"
                   />
                   <AutoFitText
-                    text={`${breakdownTotal.accrual.toLocaleString()} ${CURRENCY}`}
+                    text={`${formatNumber(breakdownTotal.accrual)} ${CURRENCY}`}
                     baseFontSize={22}
                     minFontSize={12}
                     className="min-w-0 flex-1 text-right font-mono font-black text-[#6B5BAE] leading-none"
@@ -3681,7 +3681,7 @@ export default function App() {
                 </div>
               ) : (
                 <AutoFitText
-                  text={`${breakdownTotal.income.toLocaleString()} ${CURRENCY}`}
+                  text={`${formatNumber(breakdownTotal.income)} ${CURRENCY}`}
                   baseFontSize={24}
                   minFontSize={12}
                   className="mt-2 w-full font-mono font-black text-[#6B5BAE]"
@@ -3745,7 +3745,7 @@ export default function App() {
                                 : "text-[#6B5BAE]"
                             }`}
                           >
-                            {metricValue.toLocaleString()} {CURRENCY}
+                            {formatNumber(metricValue)} {CURRENCY}
                           </span>
                         </div>
                         {statsBreakdownType === "turnover" && (
@@ -3754,7 +3754,7 @@ export default function App() {
                               Начисление
                             </span>
                             <span className="whitespace-nowrap font-mono text-lg font-black leading-tight text-[#6B5BAE]">
-                              {accrualValue.toLocaleString()} {CURRENCY}
+                              {formatNumber(accrualValue)} {CURRENCY}
                             </span>
                           </div>
                         )}
