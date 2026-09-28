@@ -50,6 +50,7 @@ import { useBackupIO } from "./hooks/useBackupIO";
 import { useStatsData } from "./hooks/useStatsData";
 import { calculateStats, getReportSaleAmount } from "./lib/stats";
 import { AutoFitText } from "./components/AutoFitText";
+import { Num } from "./components/Num";
 export default function App() {
   const activeTab = useAppStore(s => s.activeTab);
   const setActiveTab = useAppStore(s => s.setActiveTab);
@@ -2764,11 +2765,11 @@ export default function App() {
                     <div className="text-right">
                       <div className="font-mono text-xs font-black text-white/70">
                         {getSaleTurnover(sale) > 0
-                          ? `${formatNumber(getSaleTurnover(sale))} ${CURRENCY}`
+                          ? (<><Num value={getSaleTurnover(sale)} /> {CURRENCY}</>)
                           : "—"}
                       </div>
                       <div className="font-mono text-sm font-black text-[#6B5BAE]">
-                        {formatNumber(getSaleCardAmount(sale))} {CURRENCY}
+                        <Num value={getSaleCardAmount(sale)} /> {CURRENCY}
                       </div>
                     </div>
                   </div>
@@ -2786,12 +2787,12 @@ export default function App() {
                           </span>
                           <div className="flex gap-3">
                             <span className="font-mono text-white/40">
-                              {formatNumber(Number(
+                              <Num value={Number(
                                 item.actualPrice || item.price || 0,
-                              ))}
+                              )} />
                             </span>
                             <span className="font-mono text-[#6B5BAE]">
-                              {formatNumber(Number(item.income || 0))}
+                              <Num value={Number(item.income || 0)} />
                             </span>
                           </div>
                         </div>
@@ -2806,7 +2807,7 @@ export default function App() {
                               : "Чаевые"}
                           </span>
                           <span className="font-mono text-emerald-400">
-                            {formatNumber(getSaleSalonCleanIncome(sale))}{" "}
+                            <Num value={getSaleSalonCleanIncome(sale)} />{" "}
                             {CURRENCY}
                           </span>
                         </div>
@@ -3255,7 +3256,7 @@ export default function App() {
                             <span className="flex items-center gap-2 text-[10px] opacity-80">
                               <span>{totalCount} шт</span>
                               <span className="font-mono">
-                                {formatNumber(totalSum)}
+                                <Num value={totalSum} />
                               </span>
                             </span>
                           </button>
@@ -3292,7 +3293,7 @@ export default function App() {
                                   <span className="flex flex-shrink-0 items-center gap-2 text-[10px] opacity-80">
                                     <span>{st.count} шт</span>
                                     <span className="font-mono">
-                                      {formatNumber(st.sum)}
+                                      <Num value={st.sum} />
                                     </span>
                                   </span>
                                 </button>
@@ -3359,7 +3360,7 @@ export default function App() {
                               )}
                           </span>
                           <span className="flex-shrink-0 font-mono text-white/80">
-                            {formatNumber(item.value)} {CURRENCY}
+                            <Num value={item.value} /> {CURRENCY}
                           </span>
                         </div>
                         <div className="h-3 overflow-hidden rounded-full bg-white/5">
@@ -3448,7 +3449,7 @@ export default function App() {
                           </div>
                           <div className="flex items-baseline gap-1.5">
                             <span className="font-mono text-[11px] font-black text-white">
-                              {formatNumber(item.value)}
+                              <Num value={item.value} />
                             </span>
                             {showCount && (
                               <span className="font-mono text-[10px] font-bold text-white/55">
@@ -3524,7 +3525,7 @@ export default function App() {
                   Сумма
                 </div>
                 <div className="mt-1 font-mono text-xl font-black text-white">
-                  {formatNumber((reportDrillItem?.value || 0))} {CURRENCY}
+                  <Num value={(reportDrillItem?.value || 0)} /> {CURRENCY}
                 </div>
               </div>
               <div className="text-right">
@@ -3745,7 +3746,7 @@ export default function App() {
                                 : "text-[#6B5BAE]"
                             }`}
                           >
-                            {formatNumber(metricValue)} {CURRENCY}
+                            <Num value={metricValue} /> {CURRENCY}
                           </span>
                         </div>
                         {statsBreakdownType === "turnover" && (
@@ -3754,7 +3755,7 @@ export default function App() {
                               Начисление
                             </span>
                             <span className="whitespace-nowrap font-mono text-lg font-black leading-tight text-[#6B5BAE]">
-                              {formatNumber(accrualValue)} {CURRENCY}
+                              <Num value={accrualValue} /> {CURRENCY}
                             </span>
                           </div>
                         )}

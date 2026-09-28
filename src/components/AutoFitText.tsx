@@ -3,6 +3,7 @@
 
 import React, { useLayoutEffect, useRef } from "react";
 import type { CSSProperties } from "react";
+import { NumSep } from "./Num";
 
 interface AutoFitTextProps {
   /** exact string to render */
@@ -60,13 +61,23 @@ export function AutoFitText({
     };
   }, [text, baseFontSize, minFontSize]);
 
+  // Разделители разрядов (U+2009 из formatNumber) рендерим span-ами
+  // фиксированной ширины — в моноширинном шрифте пробельные символы
+  // занимают полную ячейку и выглядят слишком широкими.
+  const parts = text.split("\u2009");
+
   return (
     <div
       ref={ref}
       className={`overflow-hidden whitespace-nowrap ${className}`}
       style={{ fontSize: baseFontSize, ...style }}
     >
-      {text}
+      {parts.map((p, i) => (
+        <React.Fragment key={i}>
+          {i > 0 && <NumSep />}
+          {p}
+        </React.Fragment>
+      ))}
     </div>
   );
 }
