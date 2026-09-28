@@ -1,6 +1,6 @@
 {
   "name": "kas-buhgalteriya-pwa",
-  "version": "2.0.25",
+  "version": "2.0.26",
   "private": true,
   "type": "module",
   "dependencies": {

@@ -1,28 +1,22 @@
 package com.kas.buhgalteriya;
 
-import android.app.AlarmManager;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.os.Build;
 import androidx.core.app.NotificationCompat;
 
 public class KasAlarmReceiver extends BroadcastReceiver {
-    // Action of the follow-up alarm that force-dismisses the notification.
-    public static final String ACTION_CANCEL = "com.kas.buhgalteriya.action.CANCEL_NOTIFICATION";
-    // The notification auto-dismisses this long after it fires.
-    private static final long AUTO_DISMISS_MS = 10_000;
-
     @Override
     public void onReceive(Context context, Intent intent) {
         int id = intent.getIntExtra("id", 0);
 
-        // Follow-up alarm: remove the notification even when setTimeoutAfter
-        // is ignored (Android < 8.0 or OEM skins).
-        if (ACTION_CANCEL.equals(intent.getAction())) {
+        // Legacy (v2.0.25) auto-dismiss alarm: cancel quietly, post nothing.
+        // Newer versions no longer schedule these, but alarms survive app
+        // updates, so handle any stragglers gracefully.
+        if ("com.kas.buhgalteriya.action.CANCEL_NOTIFICATION".equals(intent.getAction())) {
             NotificationManager nmCancel =
                 (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
             if (nmCancel != null) nmCancel.cancel(id);
@@ -53,10 +47,12 @@ public class KasAlarmReceiver extends BroadcastReceiver {
             PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );
 
-        // No full-screen intent on purpose: with it the heads-up banner
-        // behaves like an incoming alarm call and stays on screen until
-        // dismissed manually. A regular high-priority notification shows the
-        // same heads-up, but collapses on its own.
+        // Regular high-priority notification:
+        // - the heads-up banner collapses into the status bar on its own
+        //   (no full-screen intent — that made the banner stick on screen);
+        // - the notification itself stays in the shade until the user taps it
+        //   (autoCancel opens the app and removes it) or swipes it away
+        //   (no timeoutAfter — that deleted it entirely).
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, "default")
             .setSmallIcon(context.getApplicationInfo().icon)
             .setContentTitle(title)
@@ -66,45 +62,11 @@ public class KasAlarmReceiver extends BroadcastReceiver {
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setAutoCancel(true)
             .setContentIntent(pendingIntent)
-            .setDefaults(Notification.DEFAULT_ALL)
-            .setTimeoutAfter(AUTO_DISMISS_MS);
+            .setDefaults(Notification.DEFAULT_ALL);
 
         NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
         if (nm != null) {
             nm.notify(id, builder.build());
-        }
-
-        scheduleAutoCancel(context, id);
-    }
-
-    // Second alarm AUTO_DISMISS_MS in the future that cancels the notification.
-    // Works on every Android version, unlike setTimeoutAfter (API 26+ only).
-    private void scheduleAutoCancel(Context context, int id) {
-        try {
-            Intent cancelIntent = new Intent(context, KasAlarmReceiver.class);
-            cancelIntent.setAction(ACTION_CANCEL);
-            cancelIntent.putExtra("id", id);
-            // requestCode must differ from the reminder PendingIntent (id),
-            // otherwise they would replace each other.
-            PendingIntent cancelPi = PendingIntent.getBroadcast(
-                context, id + 1000000, cancelIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
-            );
-            AlarmManager am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-            if (am == null) return;
-            long cancelAt = System.currentTimeMillis() + AUTO_DISMISS_MS;
-            try {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                    am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, cancelAt, cancelPi);
-                } else {
-                    am.setExact(AlarmManager.RTC_WAKEUP, cancelAt, cancelPi);
-                }
-            } catch (SecurityException e) {
-                // Exact-alarm permission denied — inexact is fine for cleanup.
-                am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, cancelAt, cancelPi);
-            }
-        } catch (Exception e) {
-            // Best effort only — setTimeoutAfter still applies on API 26+.
         }
     }
 }
