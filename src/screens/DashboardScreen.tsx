@@ -42,7 +42,7 @@ export function DashboardScreen() {
                   autoCorrect="off"
                   autoCapitalize="sentences"
                   spellCheck={false}
-                  placeholder="Поиск клиента..."
+                  placeholder="Поиск по чекам..."
                   className="w-full rounded-2xl border border-white/5 bg-[#1E222A] py-2.5 pl-11 pr-3 text-sm font-bold outline-none focus:border-[#6B5BAE]/50"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}

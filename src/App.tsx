@@ -466,7 +466,9 @@ export default function App() {
   }, [isProcModalOpen]);
 
   const filteredSales = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
+    // Запрос разбивается на ключевые слова; каждое слово должно
+    // встретиться в ЛЮБОМ поле чека (порядок слов не важен).
+    const tokens = searchQuery.trim().toLowerCase().split(/\s+/).filter(Boolean);
     
     let baseSales = sales;
     if (dashPeriodEnabled) {
@@ -484,34 +486,26 @@ export default function App() {
       baseSales.filter((sale) => {
         const matchSelectedCategory = selectedCategories.includes(sale.category);
 
-        if (!q) return matchSelectedCategory;
+        if (!tokens.length) return matchSelectedCategory;
 
-        const categoryLower = String(sale.category || "").toLowerCase();
-        let matchCategoryText = categoryLower.includes(q);
-
-        if (!matchCategoryText && sale.category === SALON_PAYROLL_CATEGORY && sale.payrollType) {
-          const pt = PAYROLL_TYPES.find(p => p.id === sale.payrollType);
-          if (pt && pt.label.toLowerCase().includes(q)) {
-            matchCategoryText = true;
-          }
+        // Единый «стог сена» из всех полей чека: каждое ключевое слово
+        // может совпасть с разным полем (имя + услуга + заметка и т.д.).
+        const parts = [
+          String(sale.clientName || ""),
+          String(sale.notes || ""),
+          String(sale.id || ""),
+          String(sale.category || ""),
+        ];
+        if (sale.category === SALON_PAYROLL_CATEGORY && sale.payrollType) {
+          const pt = PAYROLL_TYPES.find((p) => p.id === sale.payrollType);
+          if (pt) parts.push(pt.label);
         }
+        for (const item of sale.items || []) {
+          parts.push(String(item.name || ""));
+        }
+        const haystack = parts.join(" ").toLowerCase();
 
-        const matchClient = String(sale.clientName || "")
-          .toLowerCase()
-          .includes(q);
-        const matchNotes = String(sale.notes || "")
-          .toLowerCase()
-          .includes(q);
-        const matchId = String(sale.id || "")
-          .toLowerCase()
-          .includes(q);
-        const matchService = (sale.items || []).some((item) =>
-          String(item.name || "")
-            .toLowerCase()
-            .includes(q),
-        );
-
-        return matchSelectedCategory && (matchClient || matchService || matchNotes || matchId || matchCategoryText);
+        return matchSelectedCategory && tokens.every((t) => haystack.includes(t));
       }),
     );
 
