@@ -3,8 +3,17 @@
 
 import React, { useRef, useCallback, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
+import { Capacitor } from '@capacitor/core';
 import './index.css';
 import App from './App';
+
+// PWA: service worker регистрируется только в браузере. Внутри APK
+// (Capacitor) ассеты отдаёт WebView, и SW там не нужен.
+if (!Capacitor.isNativePlatform() && 'serviceWorker' in navigator) {
+  import('virtual:pwa-register').then(({ registerSW }) => {
+    registerSW({ immediate: true });
+  });
+}
 
 const SCROLL_DURATION_MS = 250;
 const SAFETY_MARGIN_PX = 16;
