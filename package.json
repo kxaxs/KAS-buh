@@ -32,6 +32,8 @@
     "dev": "vite",
     "build": "tsc -p tsconfig.json && vite build",
     "preview": "vite preview",
+    "pwa:pack": "powershell -ExecutionPolicy Bypass -File ../../scripts/pwa/pack-pwa.ps1 -ProjectDir .",
+    "pwa:check": "node ../../scripts/pwa/smoke-pwa.cjs",
     "android:init": "npx cap add android",
     "android:sync": "npx cap sync android",
     "android:open": "npx cap open android"
