@@ -2,6 +2,7 @@ import React from 'react';
 import { useAppUI } from '../context/AppUIContext';
 import { Search, BarChart3, ChevronRight, ChevronLeft, Calendar as CalendarIcon, Check } from 'lucide-react';
 import { InlineDatePickerCard } from '../components/ui-core';
+import { useSwipeNavigation } from '../hooks/useSwipeNavigation';
 import { AutoFitText } from '../components/AutoFitText';
 import { CURRENCY, CATEGORIES, getToday, isoToDDMMYYYY, formatMonthLabel, formatNumber } from '../lib/app-core';
 
@@ -39,6 +40,32 @@ export function StatsScreen() {
     setCustomRangeEditing,
     statsCalendarMarkedDates
   } = useAppUI();
+
+  // листание месяца/года горизонтальным свайпом (как кнопками-стрелками)
+  const monthSwipe = useSwipeNavigation({
+    onSwipeLeft: () => {
+      const d = new Date(statsDayMonth);
+      d.setMonth(d.getMonth() + 1);
+      setStatsDayMonth(d);
+    },
+    onSwipeRight: () => {
+      const d = new Date(statsDayMonth);
+      d.setMonth(d.getMonth() - 1);
+      setStatsDayMonth(d);
+    },
+  });
+  const yearSwipe = useSwipeNavigation({
+    onSwipeLeft: () => {
+      const d = new Date(statsDayMonth);
+      d.setFullYear(d.getFullYear() + 1);
+      setStatsDayMonth(d);
+    },
+    onSwipeRight: () => {
+      const d = new Date(statsDayMonth);
+      d.setFullYear(d.getFullYear() - 1);
+      setStatsDayMonth(d);
+    },
+  });
 
   return (
     <>
@@ -214,7 +241,7 @@ export function StatsScreen() {
           </div>
 
           {statsPeriod === "month" && (
-            <div className="flex items-center justify-between rounded-[2rem] border border-[#6B5BAE]/20 bg-[#6B5BAE]/10 py-1 px-4 mt-1">
+            <div {...monthSwipe} className="flex items-center justify-between rounded-[2rem] border border-[#6B5BAE]/20 bg-[#6B5BAE]/10 py-1 px-4 mt-1">
               <button onClick={() => {
                 const d = new Date(statsDayMonth);
                 d.setMonth(d.getMonth() - 1);
@@ -236,7 +263,7 @@ export function StatsScreen() {
           )}
 
           {statsPeriod === "year" && (
-            <div className="flex items-center justify-between rounded-[2rem] border border-[#6B5BAE]/20 bg-[#6B5BAE]/10 py-1 px-4 mt-1">
+            <div {...yearSwipe} className="flex items-center justify-between rounded-[2rem] border border-[#6B5BAE]/20 bg-[#6B5BAE]/10 py-1 px-4 mt-1">
               <button onClick={() => {
                 const d = new Date(statsDayMonth);
                 d.setFullYear(d.getFullYear() - 1);

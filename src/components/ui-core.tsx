@@ -37,6 +37,7 @@ import {
 
 import { APP_ID, SALON_SERVICES_CATEGORY, SALON_PAYROLL_CATEGORY, LEGACY_SALON_CATEGORY, HOME_CATEGORY, KALYM_CATEGORY, CATEGORIES, MARKED_CATEGORIES, CATEGORY_DOT_COLOR, CURRENCY, WEEK_DAYS, PAYROLL_TYPES, BACK_EXIT_DELAY, BACK_LAYER_COOLDOWN, BACK_DEBOUNCE, STORAGE_KEYS, setCapacitorAppRef, exitApp, padNumber, toDateKey, parseDateKey, getToday, getCurrentTime, getExportFileName, formatDate, formatLongDate, formatMonthLabel, shiftMonth, getMonthDays, getSaleDateTime, sortSalesByDateTimeDesc, getPeriodRangeLabel, inferRegisteredAt, normalizeSaleCategory, getPayrollType, normalizeSales, getSaleDisplayName, normalizeClients, normalizeProcedures, getInitialSaleState, getSaleTurnover, getSaleAccrual, getSaleSalonCleanIncome, getSaleIncome, getSaleAnalyticsIncome, getSaleCardAmount, RU_MONTHS_FULL, RU_MONTHS_SHORT, RU_WEEKDAYS, formatHeaderDate, isoToDDMMYYYY, ddmmyyyyToIso, formatNumber } from '../lib/app-core';
 import { Num } from "./Num";
+import { useSwipeNavigation } from "../hooks/useSwipeNavigation";
 export function DatePickerDialog({ isOpen, value, onClose, onConfirm }) {
   const [selectedIso, setSelectedIso] = useState(value || "");
   const [viewYear, setViewYear] = useState(new Date().getFullYear());
@@ -44,6 +45,12 @@ export function DatePickerDialog({ isOpen, value, onClose, onConfirm }) {
   const [mode, setMode] = useState("calendar");
   const [textValue, setTextValue] = useState("");
   const [textError, setTextError] = useState(false);
+
+  // листание месяца горизонтальным свайпом (как кнопками-стрелками)
+  const swipe = useSwipeNavigation({
+    onSwipeLeft: () => goNext(),
+    onSwipeRight: () => goPrev(),
+  });
 
   useEffect(() => {
     if (!isOpen) return;
@@ -136,6 +143,7 @@ export function DatePickerDialog({ isOpen, value, onClose, onConfirm }) {
       <div
         className="w-full max-w-sm rounded-[2rem] bg-[#22202A] p-6 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
+        {...(mode === "calendar" ? swipe : {})}
       >
         <div className="mb-2 text-sm font-bold text-white/80">
           Выберите дату
@@ -594,6 +602,12 @@ export function CalendarPicker({ value, onChange, onClose }) {
   const [viewMonth, setViewMonth] = useState(initial.m);
   const [selected, setSelected] = useState(value || todayStr);
 
+  // листание месяца горизонтальным свайпом (как кнопками-стрелками)
+  const swipe = useSwipeNavigation({
+    onSwipeLeft: () => nextMonth(),
+    onSwipeRight: () => prevMonth(),
+  });
+
   const firstWeekDay = (y, m) => {
     const d = new Date(y, m, 1).getDay();
     return d === 0 ? 6 : d - 1;
@@ -623,6 +637,7 @@ export function CalendarPicker({ value, onChange, onClose }) {
       <div
         className="w-full max-w-sm rounded-2xl bg-[#1E222A] p-5 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
+        {...swipe}
       >
         <div className="mb-5 flex items-center justify-between">
           <span className="flex items-center gap-1 text-base font-semibold text-white">
@@ -868,8 +883,15 @@ export function MonthCalendar({
   const cellText = compact ? "text-xs" : "text-base";
   const emptySize = compact ? "h-8" : "h-11";
 
+  // листание месяца горизонтальным свайпом (как кнопками-стрелками)
+  const swipe = useSwipeNavigation({
+    onSwipeLeft: () => onMonthChange(1),
+    onSwipeRight: () => onMonthChange(-1),
+  });
+
   return (
     <div
+      {...swipe}
       className={
         compact
           ? "rounded-2xl bg-[#22202A] p-3"

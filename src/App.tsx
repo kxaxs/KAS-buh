@@ -250,6 +250,26 @@ export default function App() {
     }
 
     // Stack pop order (topmost first)
+    if (isDatePickerOpen) {
+      setIsDatePickerOpen(false);
+      return true;
+    }
+
+    if (isTimePickerOpen) {
+      setIsTimePickerOpen(false);
+      return true;
+    }
+
+    if (isCalendarOpen) {
+      setIsCalendarOpen(false);
+      return true;
+    }
+
+    if (customRangeEditing) {
+      setCustomRangeEditing(null);
+      return true;
+    }
+
     if (saleDetailsId) {
       setSaleDetailsId(null);
       return true;
