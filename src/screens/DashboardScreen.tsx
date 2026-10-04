@@ -9,8 +9,9 @@ import {
   getPayrollType, normalizeSales, getSaleDisplayName, normalizeClients, normalizeProcedures, 
   getInitialSaleState, getSaleTurnover, getSaleAccrual, getSaleSalonCleanIncome, 
   getSaleIncome, getSaleAnalyticsIncome, getSaleCardAmount, formatHeaderDate, isoToDDMMYYYY, 
-  ddmmyyyyToIso, CATEGORIES, APP_ID, SALON_SERVICES_CATEGORY, SALON_PAYROLL_CATEGORY, STORAGE_KEYS, CURRENCY
+  ddmmyyyyToIso, CATEGORIES, APP_ID, SALON_SERVICES_CATEGORY, SALON_PAYROLL_CATEGORY, STORAGE_KEYS, CURRENCY, formatNumber
 } from '../lib/app-core';
+import { calculateStats } from '../lib/stats';
 import { 
   Users, UserPlus, FileDown, Search, ArrowRight, UserCheck, Phone, Check, EyeOff, AlertTriangle, MessageCircle, MapPin, Trash2, X, Plus, Calendar, Clock, DollarSign, Activity, Settings, Zap, ArrowLeft, ArrowDown, LogOut, ChevronRight, TrendingUp, Star, Gift, ChevronDown, PlusCircle, Bell, StickyNote, CalendarClock, ArrowDownAZ, Pin, Edit2, BarChart3, Receipt, Wallet, CalendarDays, History, Smartphone, Calculator, ShieldCheck, Mail, Send, Filter, Info, Copy, Share2, LayoutDashboard, PieChart, Scissors, CloudDownload, CloudUpload, ChevronUp, CheckCircle2 
 } from 'lucide-react';
@@ -25,6 +26,19 @@ export function DashboardScreen() {
   const setClients = useAppStore(s => s.setClients);
   const setSales = useAppStore(s => s.setSales);
   const setProcedures = useAppStore(s => s.setProcedures);
+
+  // Сводка за день: показывается под списком чеков при фильтре «Сегодня».
+  // Считается по тем же чекам, что видны в списке (calculateStats пропускает отложенные).
+  const showDaySummary = dashPeriodEnabled && dashPeriod === "today" && filteredSales.length > 0;
+  const dayStats = React.useMemo(() => calculateStats(filteredSales), [filteredSales]);
+  const daySummaryRows = [
+    { label: "Оборот", value: dayStats.turnover, color: "#6B5BAE" },
+    { label: "Начисление", value: dayStats.accrual, color: "#A89AE0" },
+    { label: "Домашние", value: dayStats.homeIncome, color: "#10B981" },
+    { label: "Калым", value: dayStats.kalymIncome, color: "#F59E0B" },
+    { label: "Чаевые", value: dayStats.tipsAmount, color: "#EC4899" },
+    { label: "Салон зп", value: dayStats.salonCleanIncome, color: "#38BDF8" },
+  ];
 
   return (
     <>
@@ -270,6 +284,41 @@ export function DashboardScreen() {
                     ))
                   )}
                 </div>
+
+                {showDaySummary && (
+                  <div className="mt-3 rounded-2xl border border-white/5 bg-[#1E222A] px-4 py-3">
+                    <div className="mb-2.5 text-[10px] font-black uppercase tracking-[0.25em] opacity-50">
+                      Сводка за день
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      {daySummaryRows.map((row) => (
+                        <div key={row.label} className="flex items-center justify-between gap-3">
+                          <span
+                            className="shrink-0 text-[11px] font-bold uppercase tracking-wider"
+                            style={{ color: row.color }}
+                          >
+                            {row.label}
+                          </span>
+                          <span
+                            className={`text-right font-mono text-sm font-black leading-none ${
+                              row.value > 0 ? "text-white/90" : "text-white/25"
+                            }`}
+                          >
+                            {formatNumber(row.value)} {CURRENCY}
+                          </span>
+                        </div>
+                      ))}
+                      <div className="mt-0.5 flex items-center justify-between gap-3 border-t border-white/10 pt-2.5">
+                        <span className="shrink-0 text-[11px] font-black uppercase tracking-wider text-white/60">
+                          Итого доход
+                        </span>
+                        <span className="text-right font-mono text-base font-black leading-none text-[#6B5BAE]">
+                          {formatNumber(dayStats.income)} {CURRENCY}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
     </>
