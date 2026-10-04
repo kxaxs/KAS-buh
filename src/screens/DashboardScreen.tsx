@@ -27,9 +27,8 @@ export function DashboardScreen() {
   const setSales = useAppStore(s => s.setSales);
   const setProcedures = useAppStore(s => s.setProcedures);
 
-  // Сводка за день: показывается под списком чеков при фильтре «Сегодня».
-  // Считается по тем же чекам, что видны в списке (calculateStats пропускает отложенные).
-  const showDaySummary = dashPeriodEnabled && dashPeriod === "today" && filteredSales.length > 0;
+  // Сводка за день: под списком чеков при фильтре «Сегодня».
+  // Только пункты с ненулевыми суммами, без заголовка и итогов, блок 2/3 ширины справа.
   const dayStats = React.useMemo(() => calculateStats(filteredSales), [filteredSales]);
   const daySummaryRows = [
     { label: "Оборот", value: dayStats.turnover, color: "#6B5BAE" },
@@ -38,7 +37,9 @@ export function DashboardScreen() {
     { label: "Калым", value: dayStats.kalymIncome, color: "#F59E0B" },
     { label: "Чаевые", value: dayStats.tipsAmount, color: "#EC4899" },
     { label: "Салон зп", value: dayStats.salonCleanIncome, color: "#38BDF8" },
-  ];
+  ].filter((row) => row.value > 0);
+  const showDaySummary =
+    dashPeriodEnabled && dashPeriod === "today" && daySummaryRows.length > 0;
 
   return (
     <>
@@ -286,10 +287,7 @@ export function DashboardScreen() {
                 </div>
 
                 {showDaySummary && (
-                  <div className="mt-3 rounded-2xl border border-white/5 bg-[#1E222A] px-4 py-3">
-                    <div className="mb-2.5 text-[10px] font-black uppercase tracking-[0.25em] opacity-50">
-                      Сводка за день
-                    </div>
+                  <div className="mt-3 ml-auto w-2/3 rounded-2xl border border-white/5 bg-[#1E222A] px-4 py-3">
                     <div className="flex flex-col gap-2">
                       {daySummaryRows.map((row) => (
                         <div key={row.label} className="flex items-center justify-between gap-3">
@@ -299,23 +297,11 @@ export function DashboardScreen() {
                           >
                             {row.label}
                           </span>
-                          <span
-                            className={`text-right font-mono text-sm font-black leading-none ${
-                              row.value > 0 ? "text-white/90" : "text-white/25"
-                            }`}
-                          >
+                          <span className="text-right font-mono text-sm font-black leading-none text-white/90">
                             {formatNumber(row.value)} {CURRENCY}
                           </span>
                         </div>
                       ))}
-                      <div className="mt-0.5 flex items-center justify-between gap-3 border-t border-white/10 pt-2.5">
-                        <span className="shrink-0 text-[11px] font-black uppercase tracking-wider text-white/60">
-                          Итого доход
-                        </span>
-                        <span className="text-right font-mono text-base font-black leading-none text-[#6B5BAE]">
-                          {formatNumber(dayStats.income)} {CURRENCY}
-                        </span>
-                      </div>
                     </div>
                   </div>
                 )}
