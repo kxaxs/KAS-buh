@@ -28,7 +28,7 @@ export function DashboardScreen() {
   const setProcedures = useAppStore(s => s.setProcedures);
 
   // Сводка за день: под списком чеков при фильтре «Сегодня».
-  // Только пункты с ненулевыми суммами, без заголовка и итогов, блок 2/3 ширины справа.
+  // Только пункты с ненулевыми суммами, без заголовка и итогов, блок 1/2 ширины справа.
   const dayStats = React.useMemo(() => calculateStats(filteredSales), [filteredSales]);
   const daySummaryRows = [
     { label: "Оборот", value: dayStats.turnover, color: "#6B5BAE" },
@@ -287,10 +287,10 @@ export function DashboardScreen() {
                 </div>
 
                 {showDaySummary && (
-                  <div className="mt-3 ml-auto w-2/3 rounded-2xl border border-white/5 bg-[#1E222A] px-4 py-3">
+                  <div className="mt-3 ml-auto w-1/2 rounded-2xl border border-white/5 bg-[#1E222A] px-3 py-3">
                     <div className="flex flex-col gap-2">
                       {daySummaryRows.map((row) => (
-                        <div key={row.label} className="flex items-center justify-between gap-3">
+                        <div key={row.label} className="flex items-center justify-between gap-2">
                           <span
                             className="shrink-0 text-[11px] font-bold uppercase tracking-wider"
                             style={{ color: row.color }}
