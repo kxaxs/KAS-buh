@@ -297,8 +297,10 @@ export function DashboardScreen() {
                           >
                             {row.label}
                           </span>
-                          <span className="text-right font-mono text-sm font-black leading-none text-white/90">
-                            {formatNumber(row.value)} {CURRENCY}
+                          <span className="whitespace-nowrap text-right font-mono text-sm font-black leading-none text-white/90">
+                            {formatNumber(row.value)}
+                            {"\u00A0"}
+                            {CURRENCY}
                           </span>
                         </div>
                       ))}
