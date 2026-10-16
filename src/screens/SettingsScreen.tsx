@@ -64,7 +64,34 @@ export function SettingsScreen() {
                 isOpen: true,
                 message: "Стереть всё безвозвратно?",
                 onConfirm: () => {
-                  useAppStore.getState().clearAllData().then(() => {
+                  useAppStore.getState().clearAllData().then(async () => {
+                    try {
+                      const KN = window.Capacitor?.Plugins?.KasNotification;
+                      if (KN?.cancel) {
+                        const ids = JSON.parse(
+                          localStorage.getItem("kas_notif_ids") || "[]",
+                        );
+                        if (Array.isArray(ids)) {
+                          ids.forEach((id) => {
+                            try {
+                              KN.cancel({ id }).catch(() => {});
+                            } catch {}
+                          });
+                        }
+                      }
+                    } catch {}
+                    try {
+                      if (window.Capacitor?.isNativePlatform?.()) {
+                        const { Filesystem, Directory } = await import(
+                          "@capacitor/filesystem"
+                        );
+                        await Filesystem.rmdir({
+                          path: "KAS-БУХГАЛТЕРИЯ",
+                          directory: Directory.Data,
+                          recursive: true,
+                        }).catch(() => {});
+                      }
+                    } catch {}
                     Object.keys(localStorage)
                       .filter((key) => key.startsWith("kas_"))
                       .forEach((key) => localStorage.removeItem(key));

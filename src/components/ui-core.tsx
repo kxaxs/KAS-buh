@@ -718,6 +718,7 @@ export function ConfirmDialog({
   isOpen,
   onClose,
   onConfirm,
+  onMerge,
   message,
   variant = "delete",
   title,
@@ -727,20 +728,21 @@ export function ConfirmDialog({
   const isSave = variant === "save";
   const isInfo = variant === "info";
   const isError = variant === "error";
+  const isImportMode = variant === "import-mode";
   const accent = isSave
     ? {
         bg: "bg-emerald-500/10",
         text: "text-emerald-400",
         solid: "bg-emerald-500",
       }
-    : isInfo
+       : isInfo || isImportMode
       ? { bg: "bg-[#6B5BAE]/15", text: "text-[#A89BD9]", solid: "bg-[#6B5BAE]" }
       : { bg: "bg-red-500/10", text: "text-red-500", solid: "bg-red-500" };
   const heading =
     title ||
     (isSave
       ? "Сохранение"
-      : isInfo
+      : isInfo || isImportMode
         ? "Внимание"
         : isError
           ? "Ошибка"
@@ -773,7 +775,31 @@ export function ConfirmDialog({
           {message}
         </p>
         <div className="space-y-3">
-          {isInfo || isError ? (
+          {isImportMode ? (
+            <>
+              <button
+                type="button"
+                onClick={onConfirm}
+                className="w-full rounded-2xl bg-[#6B5BAE] py-4 font-black uppercase tracking-widest text-white transition active:scale-95"
+              >
+                Заменить данные
+              </button>
+              <button
+                type="button"
+                onClick={onMerge}
+                className="w-full rounded-2xl bg-emerald-500 py-4 font-black uppercase tracking-widest text-white transition active:scale-95"
+              >
+                Объединить данные
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="w-full rounded-2xl bg-white/5 py-4 font-black uppercase tracking-widest text-gray-400 transition active:scale-95"
+              >
+                Отмена
+              </button>
+            </>
+          ) : isInfo || isError ? (
             <button
               type="button"
               onClick={onClose}

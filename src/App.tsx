@@ -61,6 +61,7 @@ export default function App() {
   const clients = useAppStore(s => s.clients);
   const setClients = useAppStore(s => s.setClients);
   const replaceData = useAppStore(s => s.replaceData);
+  const mergeData = useAppStore(s => s.mergeData);
   const clearAllData = useAppStore(s => s.clearAllData);
   const isStoreReady = useAppStore(s => s.isStoreReady);
   const initStore = useAppStore(s => s.initStore);
@@ -222,6 +223,8 @@ export default function App() {
   const [confirmData, setConfirmData] = useState({
     isOpen: false,
     onConfirm: null,
+    onMerge: null,
+    onCancel: null,
     message: "",
   });
 
@@ -888,7 +891,7 @@ export default function App() {
       isDeferred: false,
       notes: sale.notes || "",
       items: Array.isArray(sale.items)
-        ? sale.items.map((item) => ({ ...item, id: Date.now() + Math.random() }))
+        ? sale.items.map((item) => ({ ...item, id: crypto.randomUUID(), instanceId: crypto.randomUUID() }))
         : [],
     });
     setIsModalOpen(true);
@@ -1058,7 +1061,7 @@ export default function App() {
     } else {
       setClients((prev) => [
         ...prev,
-        { id: Date.now(), name, registeredAt, notes },
+        { id: crypto.randomUUID(), name, registeredAt, notes },
       ]);
     }
 
@@ -1082,7 +1085,7 @@ export default function App() {
       setClients((prev) => [
         ...prev,
         {
-          id: Date.now(),
+          id: crypto.randomUUID(),
           name: clientName,
           registeredAt: newSale.date || getToday(),
         },
@@ -1134,24 +1137,27 @@ export default function App() {
     if (!name || !manualService.price) return;
 
     let priceStr = String(manualService.price).replace(/,/g, ".");
-    let parsedPrice = Number(priceStr);
+    let parsedPrice = parseNonNegativeMoney(priceStr) ?? 0;
 
     let incomeStr = manualService.income
       ? String(manualService.income).replace(/,/g, ".")
       : priceStr;
-    let parsedIncome = Number(incomeStr);
+    let parsedIncome = parseNonNegativeMoney(incomeStr) ?? parsedPrice;
 
-    if (isNaN(parsedPrice) || parsedPrice <= 0) parsedPrice = 0;
-    if (isNaN(parsedIncome) || parsedIncome <= 0) parsedIncome = parsedPrice;
+    if (parsedPrice <= 0) return;
+    if (parsedIncome <= 0) parsedIncome = parsedPrice;
 
-    if (
-      !procedures.some((proc) => proc.name.toLowerCase() === name.toLowerCase())
-    ) {
+    const existingProcedure = procedures.find(
+      (proc) => !proc.archived && proc.name.toLowerCase() === name.toLowerCase(),
+    );
+    const procedureId = existingProcedure?.id || crypto.randomUUID();
+
+    if (!existingProcedure) {
       const today = getToday();
       setProcedures((prev) => [
         ...prev,
         {
-          id: Date.now(),
+           id: procedureId,
           name,
           price: parsedPrice,
           income: parsedIncome,
@@ -1162,8 +1168,9 @@ export default function App() {
     }
 
     const item = {
-      id: `manual-${Date.now()}`,
-      instanceId: Date.now() + Math.random(),
+      id: crypto.randomUUID(),
+      instanceId: crypto.randomUUID(),
+      procedureId,
       name,
       price: parsedPrice,
       income: parsedIncome,
@@ -1200,12 +1207,16 @@ export default function App() {
     setProcedures,
     setClients,
     replaceData,
+    mergeData,
     notify: (payload) =>
       setConfirmData({
         isOpen: true,
         variant: payload.variant,
         title: payload.title,
         message: payload.message,
+        onConfirm: payload.onReplace,
+        onMerge: payload.onMerge,
+        onCancel: payload.onCancel,
       }),
   });
 
@@ -1466,7 +1477,7 @@ export default function App() {
     salesPinNotes,
     setSalesPinNotes,
     notifEnabled,
-    setNotifEnabled,
+    setNotifEnabled: setNotificationsEnabled,
     notifMinutes,
     setNotifMinutes,
     notifPendingId,
@@ -2221,7 +2232,7 @@ export default function App() {
                                   {
                                     ...procedure,
                                     procedureId: procedure.id,
-                                    instanceId: Date.now() + Math.random(),
+                                    instanceId: crypto.randomUUID(),
                                     actualPrice: "",
                                   },
                                 ],
@@ -4171,12 +4182,10 @@ export default function App() {
 
       <ConfirmDialog
         isOpen={confirmData.isOpen}
-        onClose={() =>
-          setConfirmData((prev) => ({
-            ...prev,
-            isOpen: false,
-          }))
-        }
+        onClose={() => {
+          if (typeof confirmData.onCancel === "function") confirmData.onCancel();
+          setConfirmData((prev) => ({ ...prev, isOpen: false }));
+        }}
         onConfirm={() => {
           if (typeof confirmData.onConfirm === "function") {
             confirmData.onConfirm();
@@ -4190,6 +4199,10 @@ export default function App() {
         message={confirmData.message}
         variant={confirmData.variant}
         title={confirmData.title}
+        onMerge={() => {
+          if (typeof confirmData.onMerge === "function") confirmData.onMerge();
+          setConfirmData((prev) => ({ ...prev, isOpen: false }));
+        }}
       />
 
       <TimePickerDialog

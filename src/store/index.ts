@@ -157,10 +157,40 @@ export const useAppStore = create<AppState>((setStore, getStore) => ({
       used.add(String(result));
       return result;
     };
+
+    const clientIds = new Map<string, string | number>();
+    const procedureIds = new Map<string, string | number>();
+    const importedClients = data.clients.map((item) => {
+      const nextId = renameIfNeeded(item.id, usedClients);
+      if (item.id !== undefined) clientIds.set(String(item.id), nextId);
+      return { ...item, id: nextId };
+    });
+    const importedProcedures = data.procedures.map((item) => {
+      const nextId = renameIfNeeded(item.id, usedProcedures);
+      if (item.id !== undefined) procedureIds.set(String(item.id), nextId);
+      return { ...item, id: nextId };
+    });
     const merged = {
-      sales: [...current.sales, ...data.sales.map((item) => ({ ...item, id: renameIfNeeded(item.id, usedSales) }))],
-      clients: [...current.clients, ...data.clients.map((item) => ({ ...item, id: renameIfNeeded(item.id, usedClients) }))],
-      procedures: [...current.procedures, ...data.procedures.map((item) => ({ ...item, id: renameIfNeeded(item.id, usedProcedures) }))],
+      sales: [
+        ...current.sales,
+        ...data.sales.map((item) => ({
+          ...item,
+          id: renameIfNeeded(item.id, usedSales),
+          clientId:
+            item.clientId === undefined
+              ? item.clientId
+              : clientIds.get(String(item.clientId)) || item.clientId,
+          items: (item.items || []).map((saleItem) => ({
+            ...saleItem,
+            procedureId:
+              saleItem.procedureId === undefined
+                ? saleItem.procedureId
+                : procedureIds.get(String(saleItem.procedureId)) || saleItem.procedureId,
+          })),
+        })),
+      ],
+      clients: [...current.clients, ...importedClients],
+      procedures: [...current.procedures, ...importedProcedures],
     };
     await getStore().replaceData(merged);
   },
@@ -241,6 +271,7 @@ export const useAppStore = create<AppState>((setStore, getStore) => ({
       del(STORAGE_KEYS.SALES),
       del(STORAGE_KEYS.PROCEDURES),
       del(STORAGE_KEYS.CLIENTS),
+      del(STORAGE_KEYS.ROLLBACK),
     ]);
     setStore({ sales: [], procedures: [], clients: [] });
   },

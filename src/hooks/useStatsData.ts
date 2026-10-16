@@ -16,6 +16,7 @@ import {
   getSaleAccrual,
   getSaleAnalyticsIncome,
 } from "../lib/app-core";
+import { parseNonNegativeMoney } from "../lib/app-core";
 import { calculateStats, getReportSaleAmount } from "../lib/stats";
 import type { Sale, Client, Procedure } from "../types";
 
@@ -211,7 +212,7 @@ export function useStatsData(args: UseStatsDataArgs) {
         const name = it.name || "Без названия";
         const cur = map.get(name) || { count: 0, sum: 0 };
         cur.count += 1;
-        cur.sum += Number(it.actualPrice || it.price || 0);
+        cur.sum += parseNonNegativeMoney(it.actualPrice || it.price) ?? 0;
         map.set(name, cur);
       });
     });
@@ -251,7 +252,7 @@ export function useStatsData(args: UseStatsDataArgs) {
         items.forEach((it) => {
           if (reportServices !== "all" && !reportServices.has(it.name)) return;
           const name = it.name || "Без названия";
-          const amount = Number(it.actualPrice || it.price || 0);
+          const amount = parseNonNegativeMoney(it.actualPrice || it.price) ?? 0;
           const prev = map.get(name) || { sum: 0, count: 0 };
           map.set(name, { sum: prev.sum + amount, count: prev.count + 1 });
         });

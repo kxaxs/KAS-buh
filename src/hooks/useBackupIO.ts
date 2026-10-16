@@ -15,6 +15,9 @@ export interface BackupNotifyPayload {
   variant: string;
   title: string;
   message: string;
+  onReplace?: () => void;
+  onMerge?: () => void;
+  onCancel?: () => void;
 }
 
 interface UseBackupIOArgs {
@@ -27,6 +30,7 @@ interface UseBackupIOArgs {
   ) => void;
   setClients: (updater: Client[] | ((prev: Client[]) => Client[])) => void;
   replaceData?: (data: { sales: Sale[]; procedures: Procedure[]; clients: Client[] }) => Promise<void>;
+  mergeData?: (data: { sales: Sale[]; procedures: Procedure[]; clients: Client[] }) => Promise<void>;
   notify: (payload: BackupNotifyPayload) => void;
 }
 
@@ -38,6 +42,7 @@ export function useBackupIO({
   setProcedures,
   setClients,
   replaceData,
+  mergeData,
   notify,
 }: UseBackupIOArgs): {
   handleExport: () => Promise<void>;
@@ -214,14 +219,44 @@ export function useBackupIO({
             : [];
 
            const finalClients = normalizeClients(importedClients, importedSales);
+           
+           // Предложить режим импорта: замена или объединение
+           const mode = await new Promise<"replace" | "merge" | "cancel">((resolve) => {
+             const handleReplace = () => { resolve("replace"); };
+             const handleMerge = () => { resolve("merge"); };
+             const handleCancel = () => { resolve("cancel"); };
+             
+             notify({
+               variant: "import-mode",
+               title: "Выбери режим импорта",
+               message: `Чеки: ${importedSales.length}\nКлиенты: ${finalClients.length}\nУслуги: ${importedProcedures.length}`,
+               onReplace: handleReplace,
+               onMerge: handleMerge,
+               onCancel: handleCancel,
+             });
+           });
+
+           if (mode === "cancel") {
+             event.target.value = "";
+             return;
+           }
+
            await set(STORAGE_KEYS.ROLLBACK, { sales, procedures, clients, createdAt: new Date().toISOString() });
-           if (replaceData) {
+           
+           if (mode === "replace" && replaceData) {
              await replaceData({
                sales: importedSales,
                procedures: importedProcedures,
                clients: finalClients,
              });
+           } else if (mode === "merge" && mergeData) {
+             await mergeData({
+               sales: importedSales,
+               procedures: importedProcedures,
+               clients: finalClients,
+             });
            } else {
+             // Fallback
              setSales(importedSales);
              setProcedures(importedProcedures);
              setClients(finalClients);
@@ -230,7 +265,7 @@ export function useBackupIO({
           notify({
             variant: "info",
             title: "Готово",
-            message: `Данные загружены.\nЧеки: ${importedSales.length}\nКлиенты: ${importedClients.length}\nУслуги: ${importedProcedures.length}`,
+            message: `Данные ${mode === "replace" ? "заменены" : "объединены"}.\nЧеки: ${importedSales.length}\nКлиенты: ${finalClients.length}\nУслуги: ${importedProcedures.length}`,
           });
         } catch (error: any) {
           console.error("Import error:", error);
@@ -244,7 +279,7 @@ export function useBackupIO({
       console.error("Import error:", error);
       showError(error?.message || "Неизвестная ошибка.");
     }
-  }, [notify, setSales, setProcedures, setClients, replaceData]);
+  }, [notify, setSales, setProcedures, setClients, replaceData, mergeData, sales, procedures, clients]);
 
   return { handleExport, handleImport };
 }

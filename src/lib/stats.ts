@@ -11,6 +11,7 @@ import {
   getSaleIncome,
 } from "./app-core";
 import type { Sale } from "../types";
+import { parseNonNegativeMoney } from "./app-core";
 
 export interface StatsTotals {
   turnover: number;
@@ -83,12 +84,12 @@ export const getReportSaleAmount = (sale: Sale): number => {
     return (
       getSaleTurnover(sale) ||
       getSaleAccrual(sale) ||
-      Number(sale.tips || 0) ||
-      Number(sale.manualIncome || 0)
+      (parseNonNegativeMoney(sale.tips) ?? 0) ||
+      (parseNonNegativeMoney(sale.manualIncome) ?? 0)
     );
   }
   if (sale.category === SALON_PAYROLL_CATEGORY) {
-    return Number(sale.tips || 0) || Number(sale.manualIncome || 0);
+    return parseNonNegativeMoney(sale.tips) || parseNonNegativeMoney(sale.manualIncome) || 0;
   }
-  return Number(sale.manualIncome || 0) || getSaleTurnover(sale);
+  return parseNonNegativeMoney(sale.manualIncome) || getSaleTurnover(sale);
 };

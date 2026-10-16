@@ -28,7 +28,7 @@ export const CATEGORY_DOT_COLOR: Record<string, string> = {
 export const CURRENCY = "₽";
 
 /** Текущая версия приложения (держать в синхроне с versionName в android/app/build.gradle). */
-export const APP_VERSION = "2.0.36";
+export const APP_VERSION = "2.0.37";
 
 /**
  * Компактный формат чисел: разряды разделяются ТОНКИМ пробелом (U+2009)
@@ -297,14 +297,14 @@ export const normalizeSales = (sales: unknown): Sale[] => {
 
     return {
       ...sale,
-      id: sale.id || Date.now() + idx,
+      id: sale.id || crypto.randomUUID(),
       date: sale.date || getToday(),
       time: sale.time || "00:00",
       category,
       items: Array.isArray(sale.items)
         ? sale.items.map((item: any) => ({
-            instanceId: item?.instanceId,
-            id: item?.id,
+            instanceId: item?.instanceId || crypto.randomUUID(),
+            id: item?.id || crypto.randomUUID(),
             procedureId: item?.procedureId,
             name: typeof item?.name === "string" ? item.name : "",
             price: item?.price ?? 0,
@@ -315,7 +315,7 @@ export const normalizeSales = (sales: unknown): Sale[] => {
       manualIncome: sale.manualIncome ?? "",
       notes: sale.notes || "",
       isDeferred: Boolean(sale.isDeferred),
-      tips: Number(sale.tips || 0),
+      tips: parseNonNegativeMoney(sale.tips) ?? 0,
       payrollType: sale.payrollType || legacyPayrollType || PAYROLL_TYPES[0].id,
       salonExtraType: sale.salonExtraType || "tips",
       clientId: sale.clientId,
@@ -334,7 +334,7 @@ export const getSaleDisplayName = (sale: Partial<Sale> | null | undefined): stri
 
 export const normalizeClients = (clients: unknown, sales: Sale[]): Client[] => {
   const list = Array.isArray(clients) ? (clients as Partial<Client>[]) : [];
-  return list.map((client, idx) => ({
+  return list.map((client) => ({
     id: client.id || crypto.randomUUID(),
     name: client.name || "",
     registeredAt: client.registeredAt || inferRegisteredAt(client.name || "", sales),
@@ -348,7 +348,7 @@ export const normalizeProcedures = (procedures: unknown): Procedure[] => {
   const list = Array.isArray(procedures)
     ? (procedures as Partial<Procedure>[])
     : [];
-  return list.map((proc, idx) => ({
+  return list.map((proc) => ({
     id: proc.id || crypto.randomUUID(),
     name: typeof proc.name === "string" ? proc.name : "",
     price: proc.price ?? 0,
@@ -391,26 +391,29 @@ export const parseNonNegativeMoney = (value: unknown): number | null => {
 export const getSaleTurnover = (sale: Sale): number => {
   if (sale.category !== SALON_SERVICES_CATEGORY) return 0;
   return (sale.items || []).reduce(
-    (sum, item) => sum + Number(item.actualPrice || item.price || 0),
+    (sum, item) => sum + (parseNonNegativeMoney(item.actualPrice || item.price) ?? 0),
     0,
   );
 };
 
 export const getSaleAccrual = (sale: Sale): number => {
   if (sale.category !== SALON_SERVICES_CATEGORY) return 0;
-  return (sale.items || []).reduce((sum, item) => sum + Number(item.income || 0), 0);
+  return (sale.items || []).reduce(
+    (sum, item) => sum + (parseNonNegativeMoney(item.income) ?? 0),
+    0,
+  );
 };
 
 export const getSaleSalonCleanIncome = (sale: Sale): number => {
   if (![SALON_SERVICES_CATEGORY, SALON_PAYROLL_CATEGORY].includes(sale.category))
     return 0;
-  return Number(sale.tips || 0);
+  return parseNonNegativeMoney(sale.tips) ?? 0;
 };
 
 export const getSaleIncome = (sale: Sale): number => {
   if ([SALON_SERVICES_CATEGORY, SALON_PAYROLL_CATEGORY].includes(sale.category))
     return 0;
-  return Number(sale.manualIncome || 0);
+  return parseNonNegativeMoney(sale.manualIncome) ?? 0;
 };
 
 export const getSaleAnalyticsIncome = (sale: Sale): number =>
