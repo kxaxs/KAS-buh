@@ -465,6 +465,36 @@ export default function App() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  // Фон за полноэкранными шитами (чек, детали чека, клиент и т.д.) не должен
+  // скроллиться: свайп по правому краю двигал ползунок прокрутки, хотя
+  // видимая страница стояла на месте. Пока шит открыт — фиксируем body.
+  const isAnySheetOpen =
+    isModalOpen ||
+    Boolean(saleDetailsId) ||
+    isClientModalOpen ||
+    isProcModalOpen ||
+    isStatsOpen ||
+    isStatsChartOpen ||
+    isStatsBreakdownOpen ||
+    isCalendarScreenOpen ||
+    isClientHistoryOpen ||
+    Boolean(reportDrillItem);
+
+  useEffect(() => {
+    if (!isAnySheetOpen) return;
+    const scrollY = window.scrollY;
+    const prevBodyCss = document.body.style.cssText;
+    document.body.style.position = "fixed";
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.left = "0";
+    document.body.style.right = "0";
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.cssText = prevBodyCss;
+      window.scrollTo(0, scrollY);
+    };
+  }, [isAnySheetOpen]);
+
 
 
   useEffect(() => {
@@ -4196,7 +4226,7 @@ export default function App() {
           type="button"
           aria-label="Наверх"
           onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-          className="fixed bottom-28 right-4 z-[110] flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-[#1E222A]/95 text-[#A89AE0] shadow-2xl backdrop-blur-md transition active:scale-90"
+          className="fixed bottom-28 right-4 z-30 flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-[#1E222A]/95 text-[#A89AE0] shadow-2xl backdrop-blur-md transition active:scale-90"
         >
           <ChevronUp size={22} strokeWidth={2.5} />
         </button>
