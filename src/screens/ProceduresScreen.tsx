@@ -139,13 +139,14 @@ export function ProceduresScreen() {
                           onClick={() =>
                             setConfirmData({
                               isOpen: true,
-                              message: `Удалить "${procedure.name}"?`,
-                              onConfirm: () =>
-                                setProcedures((prev) =>
-                                  prev.filter(
-                                    (item) => item.id !== procedure.id,
-                                  ),
-                                ),
+                               message: `Архивировать "${procedure.name}"? История чеков сохранится.`,
+                               onConfirm: () =>
+                                 setProcedures((prev) =>
+                                   prev.map((item) => item.id === procedure.id
+                                     ? { ...item, archived: true }
+                                     : item,
+                                   ),
+                                 ),
                             })
                           }
                           className="p-2 text-red-500/30"

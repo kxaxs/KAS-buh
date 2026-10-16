@@ -63,11 +63,12 @@ export function useAutosave({
         const fileName = `auto${yy}.${mm}.${dd}-${hh}.${min}.json`;
 
         const dirPath = "KAS-БУХГАЛТЕРИЯ";
+        const backupDirectory = Directory.Data;
 
         try {
           await Filesystem.mkdir({
             path: dirPath,
-            directory: Directory.Documents,
+             directory: backupDirectory,
             recursive: true,
           });
         } catch (e) {
@@ -77,13 +78,13 @@ export function useAutosave({
         await Filesystem.writeFile({
           path: `${dirPath}/${fileName}`,
           data,
-          directory: Directory.Documents,
+           directory: backupDirectory,
           encoding: Encoding.UTF8,
         });
 
         const result = await Filesystem.readdir({
           path: dirPath,
-          directory: Directory.Documents,
+           directory: backupDirectory,
         });
 
         const backups = result.files
@@ -94,7 +95,7 @@ export function useAutosave({
           for (let i = 3; i < backups.length; i++) {
             await Filesystem.deleteFile({
               path: `${dirPath}/${backups[i].name}`,
-              directory: Directory.Documents,
+               directory: backupDirectory,
             });
           }
         }

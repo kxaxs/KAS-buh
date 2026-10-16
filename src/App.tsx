@@ -41,7 +41,7 @@ import {
   X,
 } from "lucide-react";
 
-import { APP_ID, SALON_SERVICES_CATEGORY, SALON_PAYROLL_CATEGORY, LEGACY_SALON_CATEGORY, HOME_CATEGORY, KALYM_CATEGORY, CATEGORIES, MARKED_CATEGORIES, CATEGORY_DOT_COLOR, CURRENCY, WEEK_DAYS, PAYROLL_TYPES, BACK_EXIT_DELAY, BACK_LAYER_COOLDOWN, BACK_DEBOUNCE, STORAGE_KEYS, exitApp, padNumber, toDateKey, parseDateKey, getToday, getCurrentTime, getExportFileName, formatDate, formatLongDate, formatMonthLabel, shiftMonth, getMonthDays, getSaleDateTime, sortSalesByDateTimeDesc, getPeriodRangeLabel, inferRegisteredAt, normalizeSaleCategory, getPayrollType, normalizeSales, getSaleDisplayName, normalizeClients, normalizeProcedures, getInitialSaleState, getSaleTurnover, getSaleAccrual, getSaleSalonCleanIncome, getSaleIncome, getSaleAnalyticsIncome, getSaleCardAmount, RU_MONTHS_FULL, RU_MONTHS_SHORT, RU_WEEKDAYS, formatHeaderDate, isoToDDMMYYYY, ddmmyyyyToIso, formatNumber } from "./lib/app-core";
+import { APP_ID, SALON_SERVICES_CATEGORY, SALON_PAYROLL_CATEGORY, LEGACY_SALON_CATEGORY, HOME_CATEGORY, KALYM_CATEGORY, CATEGORIES, MARKED_CATEGORIES, CATEGORY_DOT_COLOR, CURRENCY, WEEK_DAYS, PAYROLL_TYPES, BACK_EXIT_DELAY, BACK_LAYER_COOLDOWN, BACK_DEBOUNCE, STORAGE_KEYS, exitApp, padNumber, toDateKey, parseDateKey, getToday, getCurrentTime, getExportFileName, formatDate, formatLongDate, formatMonthLabel, shiftMonth, getMonthDays, getSaleDateTime, sortSalesByDateTimeDesc, getPeriodRangeLabel, inferRegisteredAt, normalizeSaleCategory, getPayrollType, normalizeSales, getSaleDisplayName, normalizeClients, normalizeProcedures, getInitialSaleState, getSaleTurnover, getSaleAccrual, getSaleSalonCleanIncome, getSaleIncome, getSaleAnalyticsIncome, getSaleCardAmount, RU_MONTHS_FULL, RU_MONTHS_SHORT, RU_WEEKDAYS, formatHeaderDate, isoToDDMMYYYY, ddmmyyyyToIso, formatNumber, parseNonNegativeMoney } from "./lib/app-core";
 import { DatePickerDialog, TimePickerDialog, BottomSheet, CalendarPicker, ConfirmDialog, NavBtn, AppNav, MonthCalendar, SaleCard, SaleDetailsSheet, InlineDatePickerCard } from './components/ui-core';
 import { useAutosave } from "./hooks/useAutosave";
 import { useBackListener } from "./hooks/useBackListener";
@@ -60,6 +60,8 @@ export default function App() {
   const setProcedures = useAppStore(s => s.setProcedures);
   const clients = useAppStore(s => s.clients);
   const setClients = useAppStore(s => s.setClients);
+  const replaceData = useAppStore(s => s.replaceData);
+  const clearAllData = useAppStore(s => s.clearAllData);
   const isStoreReady = useAppStore(s => s.isStoreReady);
   const initStore = useAppStore(s => s.initStore);
   const storageFailed = useAppStore(s => s.storageFailed);
@@ -163,6 +165,33 @@ export default function App() {
     } catch { return 0; }
   });
   const [notifPendingId, setNotifPendingId] = useState(null);
+  const setNotificationsEnabled = (value) => {
+    const next = typeof value === "function" ? value(notifEnabled) : value;
+    if (next && !window.Capacitor?.isNativePlatform?.() && typeof Notification !== "undefined") {
+      if (Notification.permission === "denied") {
+        setConfirmData({
+          isOpen: true,
+          variant: "error",
+          title: "Уведомления запрещены",
+          message: "Разрешите уведомления в настройках браузера и попробуйте снова.",
+        });
+        return;
+      }
+      if (Notification.permission === "default") {
+        Notification.requestPermission().then((permission) => {
+          if (permission === "granted") setNotifEnabled(true);
+          else setConfirmData({
+            isOpen: true,
+            variant: "error",
+            title: "Уведомления запрещены",
+            message: "Разрешение на уведомления не предоставлено.",
+          });
+        }).catch(() => {});
+        return;
+      }
+    }
+    setNotifEnabled(Boolean(next));
+  };
   const [newClientName, setNewClientName] = useState("");
   const [newClientRegistrationDate, setNewClientRegistrationDate] =
     useState(getToday());
@@ -542,6 +571,7 @@ export default function App() {
     const q = clientListSearch.trim().toLowerCase();
 
     const filtered = clients.filter((client) => {
+      if (client.archived) return false;
       if (!q) return true;
       return client.name.toLowerCase().includes(q);
     });
@@ -567,7 +597,7 @@ export default function App() {
 
   const clientSuggestions = useMemo(() => {
     const q = newSale.clientName.trim().toLowerCase();
-    const sorted = [...clients].sort((a, b) =>
+    const sorted = clients.filter((client) => !client.archived).sort((a, b) =>
       a.name.localeCompare(b.name, "ru"),
     );
 
@@ -579,7 +609,7 @@ export default function App() {
     const q = procedureListSearch.trim().toLowerCase();
 
     return procedures
-      .filter((procedure) =>
+      .filter((procedure) => !procedure.archived &&
         String(procedure.name || "")
           .toLowerCase()
           .includes(q),
@@ -770,7 +800,8 @@ export default function App() {
   };
 
   const handleSelectClient = (name) => {
-    setNewSale((prev) => ({ ...prev, clientName: name }));
+    const client = clients.find((item) => !item.archived && item.name === name);
+    setNewSale((prev) => ({ ...prev, clientName: name, clientId: client?.id }));
     setShowClientSuggestions(false);
 
     requestAnimationFrame(() => {
@@ -780,7 +811,8 @@ export default function App() {
 
   const handleClientNameChange = (e) => {
     const value = e.target.value;
-    setNewSale((prev) => ({ ...prev, clientName: value }));
+    const client = clients.find((item) => !item.archived && item.name === value);
+    setNewSale((prev) => ({ ...prev, clientName: value, clientId: client?.id }));
     setShowClientSuggestions(true);
   };
 
@@ -822,6 +854,7 @@ export default function App() {
       ...prev,
       payrollType: type,
       clientName: "",
+      clientId: undefined,
       items: [],
     }));
     setShowClientSuggestions(false);
@@ -989,6 +1022,7 @@ export default function App() {
 
     const duplicate = clients.some(
       (client) =>
+        !client.archived &&
         client.id !== editingClient?.id &&
         client.name.toLowerCase() === name.toLowerCase(),
     );
@@ -1055,8 +1089,14 @@ export default function App() {
       ]);
     }
 
+    const parsedManualIncome = parseNonNegativeMoney(newSale.manualIncome);
+    const parsedTips = parseNonNegativeMoney(newSale.tips);
+    if ((!isSalonServicesSale && !isPayrollSale && parsedManualIncome === null) ||
+        ((isSalonServicesSale || isPayrollSale) && parsedTips === null)) return;
+
     const saleData = {
       clientName,
+      clientId: newSale.clientId || clients.find((client) => client.name === clientName)?.id,
       date: newSale.date || getToday(),
       time: newSale.time || getCurrentTime(),
       category: newSale.category,
@@ -1067,9 +1107,9 @@ export default function App() {
       manualIncome:
         isSalonServicesSale || isPayrollSale
           ? ""
-          : Number(newSale.manualIncome || 0),
+          : parsedManualIncome || 0,
       tips:
-        isSalonServicesSale || isPayrollSale ? Number(newSale.tips || 0) : 0,
+        isSalonServicesSale || isPayrollSale ? parsedTips || 0 : 0,
       notes: newSale.notes?.trim() || "",
       isDeferred: Boolean(newSale.isDeferred),
       payrollType: isPayrollSale
@@ -1159,6 +1199,7 @@ export default function App() {
     setSales,
     setProcedures,
     setClients,
+    replaceData,
     notify: (payload) =>
       setConfirmData({
         isOpen: true,
@@ -1175,6 +1216,19 @@ export default function App() {
     setProcRecalcDate(val);
   };
 
+  // Сброс состояния перерасчёта при каждом открытии модалки услуги
+  useEffect(() => {
+    setProcRecalcEnabled(false);
+    setProcRecalcDate("");
+  }, [isProcModalOpen, editingProc?.id]);
+
+  // ДД.ММ.ГГ -> ISO (YYYY-MM-DD) с валидацией
+  const parseProcRecalcDate = (val) => {
+    const m = /^(\d{2})\.(\d{2})\.(\d{2})$/.exec(String(val || "").trim());
+    if (!m) return null;
+    return ddmmyyyyToIso(`${m[1]}.${m[2]}.20${m[3]}`);
+  };
+
   const handleSaveProcedure = () => {
     const name = (
       editingProc ? editingProc.name : newSale.tempProcName
@@ -1187,12 +1241,38 @@ export default function App() {
     const today = getToday();
     const isEdit = !!editingProc;
 
+    // Перерасчёт чеков с установленной даты (только при редактировании услуги)
+    let recalcFromISO = null;
+    if (isEdit && procRecalcEnabled) {
+      recalcFromISO = parseProcRecalcDate(procRecalcDate);
+      if (!recalcFromISO) {
+        setConfirmData({
+          isOpen: true,
+          variant: "error",
+          message:
+            "Укажите дату перерасчёта полностью в формате ДД.ММ.ГГ",
+        });
+        return;
+      }
+    }
+
+    const matchRecalcItem = (item) =>
+      item.procedureId === editingProc?.id || item.id === editingProc?.id;
+    const recalcCount = recalcFromISO
+      ? sales.filter(
+          (sale) =>
+            sale.date &&
+            sale.date >= recalcFromISO &&
+            (sale.items || []).some(matchRecalcItem),
+        ).length
+      : 0;
+
     const commit = () => {
       const procData = {
         id: editingProc?.id || Date.now(),
         name,
-        price: Number(price || 0),
-        income: Number(income || 0),
+        price: parseNonNegativeMoney(price) ?? 0,
+        income: parseNonNegativeMoney(income) ?? 0,
         createdAt: editingProc?.createdAt || today,
         updatedAt: today,
       };
@@ -1203,8 +1283,25 @@ export default function App() {
           : [...prev, procData],
       );
 
+      if (recalcFromISO) {
+        setSales((prev) =>
+          prev.map((sale) => {
+            if (!sale.date || sale.date < recalcFromISO) return sale;
+            let changed = false;
+            const items = (sale.items || []).map((item) => {
+              if (!(item.procedureId === editingProc?.id || item.id === editingProc?.id)) return item;
+              changed = true;
+              return { ...item, price: procData.price, income: procData.income };
+            });
+            return changed ? { ...sale, items } : sale;
+          }),
+        );
+      }
+
       setEditingProc(null);
       setIsProcModalOpen(false);
+      setProcRecalcEnabled(false);
+      setProcRecalcDate("");
       setNewSale((prev) => ({
         ...prev,
         tempProcName: "",
@@ -1216,7 +1313,11 @@ export default function App() {
     if (isEdit) {
       setConfirmData({
         isOpen: true,
-        message: `Сохранить изменения услуги "${name}"?`,
+        message:
+          `Сохранить изменения услуги "${name}"?` +
+          (recalcFromISO
+            ? `\nПерерасчёт чеков с ${formatDate(recalcFromISO)}: ${recalcCount} шт.`
+            : ""),
         variant: "save",
         onConfirm: commit,
       });
@@ -2119,6 +2220,7 @@ export default function App() {
                                   ...prev.items,
                                   {
                                     ...procedure,
+                                    procedureId: procedure.id,
                                     instanceId: Date.now() + Math.random(),
                                     actualPrice: "",
                                   },

@@ -6,7 +6,9 @@ import {
   normalizeSales,
   normalizeProcedures,
   normalizeClients,
+  STORAGE_KEYS,
 } from "../lib/app-core";
+import { set } from "idb-keyval";
 import type { Sale, Procedure, Client } from "../types";
 
 export interface BackupNotifyPayload {
@@ -24,6 +26,7 @@ interface UseBackupIOArgs {
     updater: Procedure[] | ((prev: Procedure[]) => Procedure[]),
   ) => void;
   setClients: (updater: Client[] | ((prev: Client[]) => Client[])) => void;
+  replaceData?: (data: { sales: Sale[]; procedures: Procedure[]; clients: Client[] }) => Promise<void>;
   notify: (payload: BackupNotifyPayload) => void;
 }
 
@@ -34,6 +37,7 @@ export function useBackupIO({
   setSales,
   setProcedures,
   setClients,
+  replaceData,
   notify,
 }: UseBackupIOArgs): {
   handleExport: () => Promise<void>;
@@ -153,8 +157,14 @@ export function useBackupIO({
       const file = event?.target?.files?.[0];
       if (!file) return;
 
-      if (file.size === 0) {
+       const MAX_IMPORT_BYTES = 20 * 1024 * 1024;
+       if (file.size === 0) {
         showError("Выбранный файл пустой.");
+        event.target.value = "";
+        return;
+      }
+      if (file.size > MAX_IMPORT_BYTES) {
+        showError("Файл слишком большой. Максимальный размер резервной копии — 20 МБ.");
         event.target.value = "";
         return;
       }
@@ -163,7 +173,7 @@ export function useBackupIO({
       reader.onerror = () => {
         showError("Не удалось прочитать файл. Попробуй ещё раз.");
       };
-      reader.onload = (loadEvent) => {
+       reader.onload = async (loadEvent) => {
         try {
           const raw = (loadEvent.target as any)?.result;
           if (!raw || typeof raw !== "string") {
@@ -179,16 +189,20 @@ export function useBackupIO({
             );
             return;
           }
-          if (
-            !data ||
-            typeof data !== "object" ||
-            (!Array.isArray(data.sales) &&
-              !Array.isArray(data.clients) &&
-              !Array.isArray(data.procedures))
-          ) {
-            showError("Файл не похож на резервную копию приложения.");
-            return;
-          }
+           if (
+             !data ||
+             typeof data !== "object" ||
+             !Array.isArray(data.sales) ||
+             !Array.isArray(data.clients) ||
+             !Array.isArray(data.procedures)
+           ) {
+             showError("Резервная копия должна содержать чеки, клиентов и услуги.");
+             return;
+           }
+           if (data.sales.length > 100000 || data.clients.length > 10000 || data.procedures.length > 10000) {
+             showError("В резервной копии слишком много записей.");
+             return;
+           }
           const importedSales = normalizeSales(
             Array.isArray(data.sales) ? data.sales : [],
           );
@@ -199,9 +213,19 @@ export function useBackupIO({
             ? data.clients
             : [];
 
-          setSales(importedSales);
-          setProcedures(importedProcedures);
-          setClients(normalizeClients(importedClients, importedSales));
+           const finalClients = normalizeClients(importedClients, importedSales);
+           await set(STORAGE_KEYS.ROLLBACK, { sales, procedures, clients, createdAt: new Date().toISOString() });
+           if (replaceData) {
+             await replaceData({
+               sales: importedSales,
+               procedures: importedProcedures,
+               clients: finalClients,
+             });
+           } else {
+             setSales(importedSales);
+             setProcedures(importedProcedures);
+             setClients(finalClients);
+           }
 
           notify({
             variant: "info",
@@ -220,7 +244,7 @@ export function useBackupIO({
       console.error("Import error:", error);
       showError(error?.message || "Неизвестная ошибка.");
     }
-  }, [notify, setSales, setProcedures, setClients]);
+  }, [notify, setSales, setProcedures, setClients, replaceData]);
 
   return { handleExport, handleImport };
 }

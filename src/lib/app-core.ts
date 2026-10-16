@@ -28,7 +28,7 @@ export const CATEGORY_DOT_COLOR: Record<string, string> = {
 export const CURRENCY = "₽";
 
 /** Текущая версия приложения (держать в синхроне с versionName в android/app/build.gradle). */
-export const APP_VERSION = "2.0.35";
+export const APP_VERSION = "2.0.36";
 
 /**
  * Компактный формат чисел: разряды разделяются ТОНКИМ пробелом (U+2009)
@@ -62,6 +62,8 @@ export const STORAGE_KEYS = {
   SALES: `${APP_ID}_sales`,
   PROCEDURES: `${APP_ID}_procedures`,
   CLIENTS: `${APP_ID}_clients`,
+  SNAPSHOT: `${APP_ID}_snapshot`,
+  ROLLBACK: `${APP_ID}_rollback`,
 } as const;
 
 interface CapacitorAppLike {
@@ -117,12 +119,20 @@ export const toDateKey = (date: Date): string => {
 };
 
 export const parseDateKey = (dateStr: string | null | undefined): Date | null => {
-  const [year, month, day] = String(dateStr || "")
+  const text = String(dateStr || "");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) return null;
+  const [year, month, day] = text
     .split("-")
     .map((value) => Number(value));
 
-  if (!year || !month || !day) return null;
-  return new Date(year, month - 1, day);
+  if (!year || month < 1 || month > 12 || day < 1 || day > 31) return null;
+  const date = new Date(year, month - 1, day);
+  if (
+    date.getFullYear() !== year ||
+    date.getMonth() !== month - 1 ||
+    date.getDate() !== day
+  ) return null;
+  return date;
 };
 
 export const getToday = (): string => toDateKey(new Date());
@@ -195,7 +205,9 @@ export const getMonthDays = (monthDate: Date): (string | null)[] => {
 
 export const getSaleDateTime = (sale: Partial<Sale> | null | undefined): Date => {
   const date = parseDateKey(sale?.date) || new Date(0);
-  const [hours, minutes] = String(sale?.time || "00:00")
+  const time = String(sale?.time || "00:00");
+  const match = /^(?:[01]\d|2[0-3]):[0-5]\d$/.exec(time);
+  const [hours, minutes] = (match ? time : "00:00")
     .split(":")
     .map((value) => Number(value));
 
@@ -289,13 +301,24 @@ export const normalizeSales = (sales: unknown): Sale[] => {
       date: sale.date || getToday(),
       time: sale.time || "00:00",
       category,
-      items: Array.isArray(sale.items) ? sale.items : [],
+      items: Array.isArray(sale.items)
+        ? sale.items.map((item: any) => ({
+            instanceId: item?.instanceId,
+            id: item?.id,
+            procedureId: item?.procedureId,
+            name: typeof item?.name === "string" ? item.name : "",
+            price: item?.price ?? 0,
+            income: item?.income ?? 0,
+            actualPrice: item?.actualPrice ?? "",
+          }))
+        : [],
       manualIncome: sale.manualIncome ?? "",
       notes: sale.notes || "",
       isDeferred: Boolean(sale.isDeferred),
       tips: Number(sale.tips || 0),
       payrollType: sale.payrollType || legacyPayrollType || PAYROLL_TYPES[0].id,
       salonExtraType: sale.salonExtraType || "tips",
+      clientId: sale.clientId,
     } as Sale;
   });
 };
@@ -312,11 +335,11 @@ export const getSaleDisplayName = (sale: Partial<Sale> | null | undefined): stri
 export const normalizeClients = (clients: unknown, sales: Sale[]): Client[] => {
   const list = Array.isArray(clients) ? (clients as Partial<Client>[]) : [];
   return list.map((client, idx) => ({
-    ...client,
-    id: client.id || Date.now() + idx,
+    id: client.id || crypto.randomUUID(),
     name: client.name || "",
     registeredAt: client.registeredAt || inferRegisteredAt(client.name || "", sales),
     notes: client.notes || "",
+    archived: Boolean(client.archived),
   }));
 };
 
@@ -326,10 +349,13 @@ export const normalizeProcedures = (procedures: unknown): Procedure[] => {
     ? (procedures as Partial<Procedure>[])
     : [];
   return list.map((proc, idx) => ({
-    ...proc,
-    id: proc.id || Date.now() + idx,
+    id: proc.id || crypto.randomUUID(),
+    name: typeof proc.name === "string" ? proc.name : "",
+    price: proc.price ?? 0,
+    income: proc.income ?? 0,
     createdAt: proc.createdAt || today,
     updatedAt: proc.updatedAt || proc.createdAt || today,
+    archived: Boolean(proc.archived),
   })) as Procedure[];
 };
 
@@ -348,6 +374,19 @@ export const getInitialSaleState = (): Sale => ({
   tempProcPrice: "",
   tempProcIncome: "",
 });
+
+export const parseMoney = (value: unknown, fallback = 0): number => {
+  if (value === null || value === undefined || value === "") return fallback;
+  const normalized = String(value).replace(/\s/g, "").replace(/,/g, ".");
+  if (!/^-?\d+(?:\.\d+)?$/.test(normalized)) return fallback;
+  const result = Number(normalized);
+  return Number.isFinite(result) ? result : fallback;
+};
+
+export const parseNonNegativeMoney = (value: unknown): number | null => {
+  const result = parseMoney(value, NaN);
+  return Number.isFinite(result) && result >= 0 ? result : null;
+};
 
 export const getSaleTurnover = (sale: Sale): number => {
   if (sale.category !== SALON_SERVICES_CATEGORY) return 0;

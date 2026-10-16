@@ -115,10 +115,13 @@ function ClientListItem({ client, sales, formatDate, openClientHistory, openEdit
             e.stopPropagation();
             setConfirmData({
               isOpen: true,
-              message: `Удалить клиента "${client.name}"?`,
-              onConfirm: () => {
-                setClients((prev) =>
-                  prev.filter((item) => item.id !== client.id),
+                               message: `Архивировать клиента "${client.name}"? История чеков сохранится.`,
+                               onConfirm: () => {
+                                 setClients((prev) =>
+                                   prev.map((item) => item.id === client.id
+                                     ? { ...item, archived: true }
+                                     : item,
+                                   ),
                 );
                 if (selectedClient?.id === client.id) {
                   setIsClientHistoryOpen(false);

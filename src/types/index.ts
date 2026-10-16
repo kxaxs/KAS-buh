@@ -3,9 +3,10 @@
 export interface Procedure {
   id?: string | number;
   name: string;
-  price: string;
-  income: string;
+  price: string | number;
+  income: string | number;
   recalcFrom?: string;
+  archived?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -15,11 +16,13 @@ export interface Client {
   name: string;
   notes?: string;
   registeredAt?: string;
+  archived?: boolean;
 }
 
 export interface SaleItem {
   instanceId?: string;
   id?: string | number;
+  procedureId?: string | number;
   name: string;
   price: string;
   income: string;
@@ -40,6 +43,7 @@ export interface Sale {
   notes: string;
   isDeferred: boolean;
   isCompleted?: boolean;
+  clientId?: string | number;
   payrollType: string;
   tempProcName: string;
   tempProcPrice: string;

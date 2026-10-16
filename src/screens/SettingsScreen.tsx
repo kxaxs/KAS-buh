@@ -64,11 +64,12 @@ export function SettingsScreen() {
                 isOpen: true,
                 message: "Стереть всё безвозвратно?",
                 onConfirm: () => {
-                  useAppStore.getState().setSales([]);
-                  useAppStore.getState().setClients([]);
-                  useAppStore.getState().setProcedures([]);
-                  localStorage.clear();
-                  window.location.reload();
+                  useAppStore.getState().clearAllData().then(() => {
+                    Object.keys(localStorage)
+                      .filter((key) => key.startsWith("kas_"))
+                      .forEach((key) => localStorage.removeItem(key));
+                    window.location.reload();
+                  });
                 },
               });
             } else {

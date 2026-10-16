@@ -1,7 +1,7 @@
 // Global app store: Zustand + IndexedDB (with localStorage migration)
 
 import { create } from "zustand";
-import { get, set } from "idb-keyval";
+import { del, get, set } from "idb-keyval";
 import {
   STORAGE_KEYS,
   normalizeSales,
@@ -35,7 +35,13 @@ export interface AppState {
     updater: Procedure[] | ((prev: Procedure[]) => Procedure[]),
   ) => void;
   setClients: (updater: Client[] | ((prev: Client[]) => Client[])) => void;
+  replaceData: (data: { sales: Sale[]; procedures: Procedure[]; clients: Client[] }) => Promise<void>;
+  mergeData: (data: { sales: Sale[]; procedures: Procedure[]; clients: Client[] }) => Promise<void>;
+  clearAllData: () => Promise<void>;
 }
+
+let writeQueue = Promise.resolve();
+let writeRevision = 0;
 
 const loadInitialData = async (): Promise<{
   sales: Sale[];
@@ -73,6 +79,17 @@ const loadInitialData = async (): Promise<{
   }
 
   // Обычная загрузка из IDB
+  const snapshot = await get<{ sales?: Sale[]; procedures?: Procedure[]; clients?: Client[] }>(
+    STORAGE_KEYS.SNAPSHOT,
+  );
+  if (snapshot) {
+    return {
+      sales: normalizeSales(snapshot.sales || []),
+      procedures: normalizeProcedures(snapshot.procedures || []),
+      clients: normalizeClients(snapshot.clients || [], normalizeSales(snapshot.sales || [])),
+    };
+  }
+
   const [idbSales, idbProcedures, idbClients] = await Promise.all([
     get<Sale[]>(STORAGE_KEYS.SALES),
     get<Procedure[]>(STORAGE_KEYS.PROCEDURES),
@@ -117,6 +134,37 @@ export const useAppStore = create<AppState>((setStore, getStore) => ({
 
   setActiveTab: (tab: TabId) => setStore({ activeTab: tab }),
 
+  replaceData: async (data) => {
+    const snapshot = {
+      sales: data.sales,
+      procedures: data.procedures,
+      clients: data.clients,
+      revision: ++writeRevision,
+    };
+    writeQueue = writeQueue.then(() => set(STORAGE_KEYS.SNAPSHOT, snapshot));
+    await writeQueue;
+    setStore(data);
+  },
+
+  mergeData: async (data) => {
+    const current = getStore();
+    const usedSales = new Set(current.sales.map((item) => String(item.id)));
+    const usedClients = new Set(current.clients.map((item) => String(item.id)));
+    const usedProcedures = new Set(current.procedures.map((item) => String(item.id)));
+    const renameIfNeeded = (value: string | number | undefined, used: Set<string>) => {
+      let result = value || crypto.randomUUID();
+      while (used.has(String(result))) result = crypto.randomUUID();
+      used.add(String(result));
+      return result;
+    };
+    const merged = {
+      sales: [...current.sales, ...data.sales.map((item) => ({ ...item, id: renameIfNeeded(item.id, usedSales) }))],
+      clients: [...current.clients, ...data.clients.map((item) => ({ ...item, id: renameIfNeeded(item.id, usedClients) }))],
+      procedures: [...current.procedures, ...data.procedures.map((item) => ({ ...item, id: renameIfNeeded(item.id, usedProcedures) }))],
+    };
+    await getStore().replaceData(merged);
+  },
+
   setSales: (updater) => {
     if (getStore().storageFailed) {
       console.error("[KAS] Storage unavailable — sales write skipped");
@@ -126,7 +174,16 @@ export const useAppStore = create<AppState>((setStore, getStore) => ({
       const updatedSales =
         typeof updater === "function" ? updater(state.sales) : updater;
 
-      set(STORAGE_KEYS.SALES, updatedSales).catch(console.error);
+      const revision = ++writeRevision;
+      const snapshot = { ...state, sales: updatedSales };
+      writeQueue = writeQueue
+        .then(() => set(STORAGE_KEYS.SNAPSHOT, {
+          sales: snapshot.sales,
+          procedures: snapshot.procedures,
+          clients: snapshot.clients,
+          revision,
+        }))
+        .catch(console.error);
       return { sales: updatedSales };
     });
   },
@@ -140,7 +197,16 @@ export const useAppStore = create<AppState>((setStore, getStore) => ({
       const updatedProcedures =
         typeof updater === "function" ? updater(state.procedures) : updater;
 
-      set(STORAGE_KEYS.PROCEDURES, updatedProcedures).catch(console.error);
+      const revision = ++writeRevision;
+      const snapshot = { ...state, procedures: updatedProcedures };
+      writeQueue = writeQueue
+        .then(() => set(STORAGE_KEYS.SNAPSHOT, {
+          sales: snapshot.sales,
+          procedures: snapshot.procedures,
+          clients: snapshot.clients,
+          revision,
+        }))
+        .catch(console.error);
       return { procedures: updatedProcedures };
     });
   },
@@ -154,8 +220,28 @@ export const useAppStore = create<AppState>((setStore, getStore) => ({
       const updatedClients =
         typeof updater === "function" ? updater(state.clients) : updater;
 
-      set(STORAGE_KEYS.CLIENTS, updatedClients).catch(console.error);
+      const revision = ++writeRevision;
+      const snapshot = { ...state, clients: updatedClients };
+      writeQueue = writeQueue
+        .then(() => set(STORAGE_KEYS.SNAPSHOT, {
+          sales: snapshot.sales,
+          procedures: snapshot.procedures,
+          clients: snapshot.clients,
+          revision,
+        }))
+        .catch(console.error);
       return { clients: updatedClients };
     });
+  },
+
+  clearAllData: async () => {
+    await writeQueue;
+    await Promise.all([
+      del(STORAGE_KEYS.SNAPSHOT),
+      del(STORAGE_KEYS.SALES),
+      del(STORAGE_KEYS.PROCEDURES),
+      del(STORAGE_KEYS.CLIENTS),
+    ]);
+    setStore({ sales: [], procedures: [], clients: [] });
   },
 }));

@@ -132,7 +132,7 @@ export function useKeyboardScroll({ scrollContainerRef, targetRef }: ScrollConfi
 }
 
 
-window.onerror = function(msg, url, line, col, error) {
+const showCrash = (title, details) => {
   const errDiv = document.createElement('div');
   errDiv.style.padding = '20px';
   errDiv.style.background = '#8b0000';
@@ -143,23 +143,25 @@ window.onerror = function(msg, url, line, col, error) {
   errDiv.style.width = '100vw';
   errDiv.style.height = '100vh';
   errDiv.style.zIndex = '999999';
-  errDiv.innerHTML = '<h1>Global Crash</h1><pre>' + msg + '\n' + (error ? error.stack : '') + '</pre>';
+  const heading = document.createElement('h1');
+  heading.textContent = title;
+  const pre = document.createElement('pre');
+  pre.textContent = String(details || '');
+  errDiv.appendChild(heading);
+  errDiv.appendChild(pre);
+  const button = document.createElement('button');
+  button.textContent = 'Перезапустить приложение';
+  button.onclick = () => window.location.reload();
+  errDiv.appendChild(button);
   document.body.appendChild(errDiv);
 };
 
+window.onerror = function(msg, url, line, col, error) {
+  showCrash('Произошла ошибка', error?.message || msg);
+};
+
 window.addEventListener('unhandledrejection', function(event) {
-  const errDiv = document.createElement('div');
-  errDiv.style.padding = '20px';
-  errDiv.style.background = '#8b0000';
-  errDiv.style.color = 'white';
-  errDiv.style.position = 'fixed';
-  errDiv.style.top = '0';
-  errDiv.style.left = '0';
-  errDiv.style.width = '100vw';
-  errDiv.style.height = '100vh';
-  errDiv.style.zIndex = '999999';
-  errDiv.innerHTML = '<h1>Unhandled Promise Rejection</h1><pre>' + event.reason + '</pre>';
-  document.body.appendChild(errDiv);
+  showCrash('Произошла ошибка', event.reason?.message || String(event.reason || 'Неизвестная ошибка'));
 });
 
 class ErrorBoundary extends React.Component {
