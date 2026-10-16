@@ -40,6 +40,9 @@ export default defineConfig({
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
         skipWaiting: true,
         clientsClaim: true,
+        // Обработчик клика по уведомлению: закрывает уведомление и
+        // фокусирует/открывает окно приложения (см. public/sw-notif.js).
+        importScripts: ['sw-notif.js'],
       },
     }),
   ],

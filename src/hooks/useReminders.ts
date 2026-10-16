@@ -125,7 +125,13 @@ export function useReminders({
                   await reg.showNotification(title, options);
                   return;
                 }
-                new Notification(title, options);
+                const n = new Notification(title, options);
+                n.onclick = () => {
+                  try {
+                    window.focus();
+                    n.close();
+                  } catch {}
+                };
               } catch {}
             })();
           }
