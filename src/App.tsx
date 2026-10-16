@@ -1092,10 +1092,26 @@ export default function App() {
       ]);
     }
 
-    const parsedManualIncome = parseNonNegativeMoney(newSale.manualIncome);
-    const parsedTips = parseNonNegativeMoney(newSale.tips);
-    if ((!isSalonServicesSale && !isPayrollSale && parsedManualIncome === null) ||
-        ((isSalonServicesSale || isPayrollSale) && parsedTips === null)) return;
+    // Пустое поле = 0 (как раньше), а вот некорректный текст (не число / отрицательное) — ошибка
+    const parseMoneyField = (value) => {
+      if (value === null || value === undefined || String(value).trim() === "") return 0;
+      return parseNonNegativeMoney(value);
+    };
+    const parsedManualIncome = parseMoneyField(newSale.manualIncome);
+    const parsedTips = parseMoneyField(newSale.tips);
+    const invalidManualIncome =
+      !isSalonServicesSale && !isPayrollSale && parsedManualIncome === null;
+    const invalidTips =
+      (isSalonServicesSale || isPayrollSale) && parsedTips === null;
+    if (invalidManualIncome || invalidTips) {
+      setConfirmData({
+        isOpen: true,
+        variant: "error",
+        title: "Некорректная сумма",
+        message: "Сумму нужно указать числом, например 1500 или 1500.50",
+      });
+      return;
+    }
 
     const saleData = {
       clientName,
@@ -1103,16 +1119,16 @@ export default function App() {
       date: newSale.date || getToday(),
       time: newSale.time || getCurrentTime(),
       category: newSale.category,
-      id: selectedSale?.id || Date.now(),
+      id: selectedSale?.id || crypto.randomUUID(),
       items: isSalonServicesSale
         ? (newSale.items || []).map((item) => ({ ...item }))
         : [],
       manualIncome:
         isSalonServicesSale || isPayrollSale
           ? ""
-          : parsedManualIncome || 0,
+          : parsedManualIncome ?? 0,
       tips:
-        isSalonServicesSale || isPayrollSale ? parsedTips || 0 : 0,
+        isSalonServicesSale || isPayrollSale ? parsedTips ?? 0 : 0,
       notes: newSale.notes?.trim() || "",
       isDeferred: Boolean(newSale.isDeferred),
       payrollType: isPayrollSale
@@ -1144,7 +1160,25 @@ export default function App() {
       : priceStr;
     let parsedIncome = parseNonNegativeMoney(incomeStr) ?? parsedPrice;
 
+    if (parsedPrice === null) {
+      setConfirmData({
+        isOpen: true,
+        variant: "error",
+        title: "Некорректная сумма",
+        message: "Цену нужно указать числом, например 1500",
+      });
+      return;
+    }
     if (parsedPrice <= 0) return;
+    if (parsedIncome === null) {
+      setConfirmData({
+        isOpen: true,
+        variant: "error",
+        title: "Некорректная сумма",
+        message: "Доход нужно указать числом, например 1500",
+      });
+      return;
+    }
     if (parsedIncome <= 0) parsedIncome = parsedPrice;
 
     const existingProcedure = procedures.find(
