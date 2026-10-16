@@ -106,13 +106,28 @@ export function useReminders({
         const delay = _fireAt - _now;
         const t = setTimeout(() => {
           if (notifEnabled && notifMinutes > 0) {
-            try {
-              new Notification("⏰ Напоминание", {
-                body: "Через " + notifMinutes + " мин: " + _name,
+            (async () => {
+              const title = "⏰ Напоминание";
+              const body = "Через " + notifMinutes + " мин: " + _name;
+              const options = {
+                body,
                 icon: "./app-icon-192.png",
                 tag: "kas-" + sale.id,
-              });
-            } catch {}
+                data: { saleId: String(sale.id) },
+              };
+              try {
+                // На Android Chrome конструктор Notification запрещён —
+                // показываем через service worker registration.
+                const reg =
+                  navigator.serviceWorker &&
+                  (await navigator.serviceWorker.getRegistration());
+                if (reg && typeof reg.showNotification === "function") {
+                  await reg.showNotification(title, options);
+                  return;
+                }
+                new Notification(title, options);
+              } catch {}
+            })();
           }
         }, delay);
         timers.push(t);

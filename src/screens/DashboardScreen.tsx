@@ -16,6 +16,7 @@ import {
   Users, UserPlus, FileDown, Search, ArrowRight, UserCheck, Phone, Check, EyeOff, AlertTriangle, MessageCircle, MapPin, Trash2, X, Plus, Calendar, Clock, DollarSign, Activity, Settings, Zap, ArrowLeft, ArrowDown, LogOut, ChevronRight, TrendingUp, Star, Gift, ChevronDown, PlusCircle, Bell, StickyNote, CalendarClock, ArrowDownAZ, Pin, Edit2, BarChart3, Receipt, Wallet, CalendarDays, History, Smartphone, Calculator, ShieldCheck, Mail, Send, Filter, Info, Copy, Share2, LayoutDashboard, PieChart, Scissors, CloudDownload, CloudUpload, ChevronUp, CheckCircle2 
 } from 'lucide-react';
 import { SaleCard } from '../components/ui-core';
+import { useLongPress } from '../hooks/useLongPress';
 
 export function DashboardScreen() {
   const ui = React.useContext(AppUIContext);
@@ -26,6 +27,10 @@ export function DashboardScreen() {
   const setClients = useAppStore(s => s.setClients);
   const setSales = useAppStore(s => s.setSales);
   const setProcedures = useAppStore(s => s.setProcedures);
+
+  // Долгое нажатие (iOS): меню периода и меню напоминаний
+  const periodLongPress = useLongPress(() => setIsDashPeriodMenuOpen(true));
+  const notifLongPress = useLongPress(() => setIsNotifMenuOpen(true));
 
   // Сводка за день: под списком чеков при фильтре «Сегодня».
   // Только пункты с ненулевыми суммами, без заголовка и итогов, блок 1/2 ширины справа.
@@ -127,6 +132,7 @@ export function DashboardScreen() {
                     <div className="relative">
                       <button
                         type="button"
+                        {...notifLongPress}
                         onClick={() => {
                           if (isNotifMenuOpen) {
                             setIsNotifMenuOpen(false);
@@ -189,6 +195,7 @@ export function DashboardScreen() {
                     <div className="relative">
                       <button
                         type="button"
+                        {...periodLongPress}
                         onClick={() => {
                           if (isDashPeriodMenuOpen) {
                             setIsDashPeriodMenuOpen(false);
