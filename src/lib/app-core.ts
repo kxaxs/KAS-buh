@@ -28,7 +28,7 @@ export const CATEGORY_DOT_COLOR: Record<string, string> = {
 export const CURRENCY = "₽";
 
 /** Текущая версия приложения (держать в синхроне с versionName в android/app/build.gradle). */
-export const APP_VERSION = "2.0.39";
+export const APP_VERSION = "2.0.40";
 
 /**
  * Компактный формат чисел: разряды разделяются ТОНКИМ пробелом (U+2009)
