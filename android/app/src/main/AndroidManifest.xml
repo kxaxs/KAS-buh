@@ -37,6 +37,15 @@
         <receiver android:name="com.kas.buhgalteriya.KasAlarmReceiver"
             android:exported="false" />
 
+        <!-- Re-arm persisted reminder alarms after reboot / app update -->
+        <receiver android:name="com.kas.buhgalteriya.KasBootReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+
         <receiver android:name="com.capacitorjs.plugins.localnotifications.LocalNotificationRestoreReceiver"
             android:exported="false">
             <intent-filter>

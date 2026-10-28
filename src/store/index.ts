@@ -43,6 +43,48 @@ export interface AppState {
 let writeQueue = Promise.resolve();
 let writeRevision = 0;
 
+/**
+ * Если прошлый импорт прервался (приложение убили между записью ROLLBACK
+ * и удалением ключа после успеха) — восстанавливаем снапшот «до импорта».
+ * Возвращает восстановленные данные или null, если откатывать нечего.
+ */
+const restorePendingRollback = async (): Promise<{
+  sales: Sale[];
+  procedures: Procedure[];
+  clients: Client[];
+} | null> => {
+  try {
+    const rollback = await get<{
+      sales?: Sale[];
+      procedures?: Procedure[];
+      clients?: Client[];
+    }>(STORAGE_KEYS.ROLLBACK);
+    if (!rollback) return null;
+    if (
+      !Array.isArray(rollback.sales) ||
+      !Array.isArray(rollback.procedures) ||
+      !Array.isArray(rollback.clients)
+    ) {
+      // Битый снапшот — просто убираем мусор
+      await del(STORAGE_KEYS.ROLLBACK);
+      return null;
+    }
+    const restoredSales = normalizeSales(rollback.sales);
+    const restored = {
+      sales: restoredSales,
+      procedures: normalizeProcedures(rollback.procedures),
+      clients: normalizeClients(rollback.clients, restoredSales),
+    };
+    await set(STORAGE_KEYS.SNAPSHOT, { ...restored, revision: ++writeRevision });
+    await del(STORAGE_KEYS.ROLLBACK);
+    console.warn("[KAS] Прерванный импорт обнаружен — данные восстановлены из снапшота отката");
+    return restored;
+  } catch (error) {
+    console.error("Rollback restore failed:", error);
+    return null;
+  }
+};
+
 const loadInitialData = async (): Promise<{
   sales: Sale[];
   procedures: Procedure[];
@@ -114,14 +156,20 @@ export const useAppStore = create<AppState>((setStore, getStore) => ({
   initStore: async () => {
     if (getStore().isStoreReady) return;
 
-    try {
+    const loadWithRollback = async () => {
       const data = await withTimeout(loadInitialData(), IDB_TIMEOUT_MS);
+      const rollback = await restorePendingRollback();
+      return rollback || data;
+    };
+
+    try {
+      const data = await loadWithRollback();
       setStore({ ...data, isStoreReady: true, storageFailed: false });
     } catch (error) {
       console.error("Data load error:", error);
       // One retry before giving up
       try {
-        const data = await withTimeout(loadInitialData(), IDB_TIMEOUT_MS);
+        const data = await loadWithRollback();
         setStore({ ...data, isStoreReady: true, storageFailed: false });
       } catch (retryError) {
         console.error("Data load retry failed:", retryError);

@@ -1,10 +1,7 @@
 package com.kas.buhgalteriya;
 
-import android.app.AlarmManager;
-import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
-import android.os.Build;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
@@ -79,33 +76,9 @@ public class KasNotificationPlugin extends Plugin {
             }
 
             Context ctx = getContext();
-            Intent intent = new Intent(ctx, KasAlarmReceiver.class);
-            intent.putExtra("id", id);
-            intent.putExtra("title", title);
-            intent.putExtra("body", body);
-            intent.putExtra("saleId", saleId);
-
-            PendingIntent pi = PendingIntent.getBroadcast(
-                ctx, id, intent,
-                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
-            );
-
-            AlarmManager am = (AlarmManager) ctx.getSystemService(Context.ALARM_SERVICE);
-            if (am == null) {
-                call.reject("AlarmManager not available");
-                return;
-            }
-
-            // Use AlarmClock for exact timing even in Doze mode
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                // setAlarmClock fires exactly on time even in Doze
-                AlarmManager.AlarmClockInfo alarmInfo = new AlarmManager.AlarmClockInfo(fireAt, pi);
-                am.setAlarmClock(alarmInfo, pi);
-            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, fireAt, pi);
-            } else {
-                am.setExact(AlarmManager.RTC_WAKEUP, fireAt, pi);
-            }
+            KasAlarmScheduler.setAlarm(ctx, id, title, body, saleId, fireAt);
+            // Persist so KasBootReceiver can re-arm it after reboot / app update
+            KasAlarmScheduler.saveAlarm(ctx, id, title, body, saleId, fireAt);
 
             JSObject result = new JSObject();
             result.put("id", id);
@@ -121,17 +94,9 @@ public class KasNotificationPlugin extends Plugin {
         try {
             int id = call.getInt("id", 0);
             Context ctx = getContext();
-            Intent intent = new Intent(ctx, KasAlarmReceiver.class);
-            PendingIntent pi = PendingIntent.getBroadcast(
-                ctx, id, intent,
-                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
-            );
-            AlarmManager am = (AlarmManager) ctx.getSystemService(Context.ALARM_SERVICE);
-            if (am != null) am.cancel(pi);
-            // Also dismiss a visible notification with this id, if any
-            android.app.NotificationManager nm =
-                (android.app.NotificationManager) ctx.getSystemService(Context.NOTIFICATION_SERVICE);
-            if (nm != null) nm.cancel(id);
+            // Also dismisses a visible notification with this id, if any
+            KasAlarmScheduler.cancelAlarm(ctx, id);
+            KasAlarmScheduler.removeAlarm(ctx, id);
             call.resolve();
         } catch (Exception e) {
             call.reject("Cancel failed: " + e.getMessage());

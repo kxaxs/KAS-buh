@@ -59,7 +59,7 @@ export function useReminders({
     const _now = Date.now();
     const _trigMs = notifMinutes * 60 * 1000;
     const _toSched = sales
-      .filter((sale) => sale.date && sale.time && !sale.isCompleted)
+      .filter((sale) => sale.date && sale.time && sale.isDeferred)
       .map((sale) => {
         try {
           return { ...sale, _dt: new Date(sale.date + "T" + sale.time) };
@@ -111,7 +111,7 @@ export function useReminders({
               const body = "Через " + notifMinutes + " мин: " + _name;
               const options = {
                 body,
-                icon: "./app-icon-192.png",
+                icon: "./pwa-192x192.png",
                 tag: "kas-" + sale.id,
                 data: { saleId: String(sale.id) },
               };

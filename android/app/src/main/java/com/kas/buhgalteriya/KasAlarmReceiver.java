@@ -39,6 +39,10 @@ public class KasAlarmReceiver extends BroadcastReceiver {
             .putString("last_alarm_sale_id", saleId == null ? "" : saleId)
             .apply();
 
+        // One-shot alarm fired — drop it from the persisted list so a reboot
+        // does not re-arm a stale reminder (KasBootReceiver re-arms the rest).
+        KasAlarmScheduler.removeAlarm(context, id);
+
         // Intent to open app when notification tapped
         Intent openIntent = new Intent(context, MainActivity.class);
         openIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);

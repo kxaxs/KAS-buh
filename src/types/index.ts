@@ -14,6 +14,8 @@ export interface Procedure {
 export interface Client {
   id?: string | number;
   name: string;
+  phone?: string;
+  address?: string;
   notes?: string;
   registeredAt?: string;
   archived?: boolean;
@@ -42,7 +44,6 @@ export interface Sale {
   tips: string | number;
   notes: string;
   isDeferred: boolean;
-  isCompleted?: boolean;
   clientId?: string | number;
   payrollType: string;
   tempProcName: string;
@@ -55,7 +56,7 @@ export interface ConfirmDialogState {
   isOpen: boolean;
   message: string;
   title?: string;
-  variant?: 'default' | 'delete' | 'save';
+  variant?: 'default' | 'delete' | 'save' | 'error';
   onConfirm?: () => void;
 }
 

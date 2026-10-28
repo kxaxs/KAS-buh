@@ -27,6 +27,8 @@ import {
   Filter,
   Info,
   LayoutDashboard,
+  MapPin,
+  Phone,
   PieChart,
   Pin,
   Plus,
@@ -155,6 +157,7 @@ export default function App() {
   const [clientSortMode, setClientSortMode] = useState("name");
   const [procSortMode, setProcSortMode] = useState("name");
   const [clientPinNotes, setClientPinNotes] = useState(false);
+  const [clientPhoneFilter, setClientPhoneFilter] = useState(false);
   const [salesPinNotes, setSalesPinNotes] = useState(false);
   const [notifEnabled, setNotifEnabled] = useState(() => {
     try { return localStorage.getItem("kas_notif_enabled") === "1"; } catch { return false; }
@@ -197,8 +200,13 @@ export default function App() {
   const [newClientRegistrationDate, setNewClientRegistrationDate] =
     useState(getToday());
   const [newClientNotes, setNewClientNotes] = useState("");
+  const [newClientPhone, setNewClientPhone] = useState("");
+  const [newClientAddress, setNewClientAddress] = useState("");
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [newSale, setNewSale] = useState(getInitialSaleState());
+  const [itemEditId, setItemEditId] = useState(null);
+  const [itemEditPrice, setItemEditPrice] = useState("");
+  const [itemEditIncome, setItemEditIncome] = useState("");
 
   useEffect(() => {
     if (newSale.date && newSale.time) {
@@ -241,6 +249,8 @@ export default function App() {
   const manualSaleIncomeRef = useRef(null);
   const clientInputRef = useRef(null);
   const clientDateRef = useRef(null);
+  const clientPhoneRef = useRef(null);
+  const clientAddressRef = useRef(null);
   const procNameRef = useRef(null);
   const procPriceRef = useRef(null);
   const procIncomeRef = useRef(null);
@@ -340,6 +350,7 @@ export default function App() {
 
     if (activeTab !== "dashboard") {
       setTabDirection("right");
+      setIsStatsOpen(false);
       setActiveTab("dashboard");
       return true;
     }
@@ -602,11 +613,19 @@ export default function App() {
 
   const filteredClients = useMemo(() => {
     const q = clientListSearch.trim().toLowerCase();
+    const qDigits = q.replace(/\D/g, "");
 
     const filtered = clients.filter((client) => {
       if (client.archived) return false;
       if (!q) return true;
-      return client.name.toLowerCase().includes(q);
+      const phone = client.phone || "";
+      const address = client.address || "";
+      return (
+        client.name.toLowerCase().includes(q) ||
+        phone.toLowerCase().includes(q) ||
+        (qDigits.length > 0 && phone.replace(/\D/g, "").includes(qDigits)) ||
+        address.toLowerCase().includes(q)
+      );
     });
 
     const sorted = [...filtered].sort((a, b) => {
@@ -619,14 +638,22 @@ export default function App() {
       return a.name.localeCompare(b.name, "ru");
     });
 
+    let result = sorted;
+
     if (clientPinNotes) {
-      const withNotes = sorted.filter((c) => !!c.notes?.trim());
-      const without = sorted.filter((c) => !c.notes?.trim());
-      return [...withNotes, ...without];
+      const withNotes = result.filter((c) => !!c.notes?.trim());
+      const without = result.filter((c) => !c.notes?.trim());
+      result = [...withNotes, ...without];
     }
 
-    return sorted;
-  }, [clients, clientListSearch, clientSortMode, clientPinNotes]);
+    if (clientPhoneFilter) {
+      const withPhone = result.filter((c) => !!c.phone?.trim());
+      const without = result.filter((c) => !c.phone?.trim());
+      result = [...withPhone, ...without];
+    }
+
+    return result;
+  }, [clients, clientListSearch, clientSortMode, clientPinNotes, clientPhoneFilter]);
 
   const clientSuggestions = useMemo(() => {
     const q = newSale.clientName.trim().toLowerCase();
@@ -758,6 +785,9 @@ export default function App() {
     });
     setProcSearch("");
     setShowClientSuggestions(false);
+    setItemEditId(null);
+    setItemEditPrice("");
+    setItemEditIncome("");
   };
 
   const resetClientForm = () => {
@@ -765,6 +795,8 @@ export default function App() {
     setNewClientName("");
     setNewClientRegistrationDate(getToday());
     setNewClientNotes("");
+    setNewClientPhone("");
+    setNewClientAddress("");
   };
 
   const toggleCategory = (category) => {
@@ -859,6 +891,8 @@ export default function App() {
     setNewClientName(client.name || "");
     setNewClientRegistrationDate(client.registeredAt || getToday());
     setNewClientNotes(client.notes || "");
+    setNewClientPhone(client.phone || "");
+    setNewClientAddress(client.address || "");
     setIsClientModalOpen(true);
   };
 
@@ -1061,15 +1095,22 @@ export default function App() {
     );
 
     if (duplicate) {
-      alert("Клиент с таким именем уже есть.");
+      setConfirmData({
+        isOpen: true,
+        variant: "error",
+        title: "Дубликат",
+        message: "Клиент с таким именем уже есть.",
+      });
       return;
     }
 
     const notes = newClientNotes.trim();
+    const phone = newClientPhone.trim();
+    const address = newClientAddress.trim();
 
     if (editingClient) {
       const oldName = editingClient.name;
-      const updatedClient = { ...editingClient, name, registeredAt, notes };
+      const updatedClient = { ...editingClient, name, registeredAt, notes, phone, address };
 
       setClients((prev) =>
         prev.map((client) =>
@@ -1091,7 +1132,7 @@ export default function App() {
     } else {
       setClients((prev) => [
         ...prev,
-        { id: crypto.randomUUID(), name, registeredAt, notes },
+        { id: crypto.randomUUID(), name, registeredAt, notes, phone, address },
       ]);
     }
 
@@ -1106,16 +1147,21 @@ export default function App() {
 
     if (!isPayrollSale && !clientName) return;
 
-    if (
-      clientName &&
-      !clients.some(
-        (client) => client.name.toLowerCase() === clientName.toLowerCase(),
-      )
-    ) {
+    // Ищем клиента без учёта регистра (как проверка дублей). Для нового
+    // клиента генерируем id сразу, чтобы чек был связан с ним же, а не
+    // потерял связь из-за устаревшего clients в замыкании.
+    const existingClient = clientName
+      ? clients.find(
+          (client) => client.name.toLowerCase() === clientName.toLowerCase(),
+        )
+      : undefined;
+    let newClientId = null;
+    if (clientName && !existingClient) {
+      newClientId = crypto.randomUUID();
       setClients((prev) => [
         ...prev,
         {
-          id: crypto.randomUUID(),
+          id: newClientId,
           name: clientName,
           registeredAt: newSale.date || getToday(),
         },
@@ -1145,7 +1191,7 @@ export default function App() {
 
     const saleData = {
       clientName,
-      clientId: newSale.clientId || clients.find((client) => client.name === clientName)?.id,
+      clientId: newSale.clientId || existingClient?.id || newClientId,
       date: newSale.date || getToday(),
       time: newSale.time || getCurrentTime(),
       category: newSale.category,
@@ -1183,23 +1229,22 @@ export default function App() {
     if (!name || !manualService.price) return;
 
     let priceStr = String(manualService.price).replace(/,/g, ".");
-    let parsedPrice = parseNonNegativeMoney(priceStr) ?? 0;
+    let parsedPrice = parseNonNegativeMoney(priceStr);
 
     let incomeStr = manualService.income
       ? String(manualService.income).replace(/,/g, ".")
       : priceStr;
-    let parsedIncome = parseNonNegativeMoney(incomeStr) ?? parsedPrice;
+    let parsedIncome = parseNonNegativeMoney(incomeStr);
 
-    if (parsedPrice === null) {
+    if (parsedPrice === null || parsedPrice <= 0) {
       setConfirmData({
         isOpen: true,
         variant: "error",
         title: "Некорректная сумма",
-        message: "Цену нужно указать числом, например 1500",
+        message: "Цену нужно указать числом больше нуля, например 1500",
       });
       return;
     }
-    if (parsedPrice <= 0) return;
     if (parsedIncome === null) {
       setConfirmData({
         isOpen: true,
@@ -1263,6 +1308,65 @@ export default function App() {
     }));
   };
 
+  const startItemEdit = (item, idx) => {
+    setItemEditId(item.instanceId || idx);
+    setItemEditPrice(String(item.price ?? ""));
+    setItemEditIncome(String(item.income ?? ""));
+  };
+
+  const cancelItemEdit = () => {
+    setItemEditId(null);
+    setItemEditPrice("");
+    setItemEditIncome("");
+  };
+
+  const requestSaveItemEdit = (item, idx) => {
+    const priceRaw = itemEditPrice.trim();
+    const incomeRaw = itemEditIncome.trim();
+    const price = priceRaw === "" ? null : parseNonNegativeMoney(priceRaw);
+    const income = incomeRaw === "" ? null : parseNonNegativeMoney(incomeRaw);
+
+    if (price === null || income === null) {
+      setConfirmData({
+        isOpen: true,
+        variant: "error",
+        title: "Некорректная сумма",
+        message: "Сумму нужно указать числом, например 1500 или 1500.50",
+      });
+      return;
+    }
+
+    setConfirmData({
+      isOpen: true,
+      variant: "save",
+      message: item.procedureId != null
+        ? "Сохранить новые суммы? Они обновятся в чеке и в базе услуг."
+        : "Сохранить новые суммы в чеке?",
+      onConfirm: () => saveItemEdit(item, idx, price, income),
+    });
+  };
+
+  const saveItemEdit = (item, idx, price, income) => {
+    setNewSale((prev) => ({
+      ...prev,
+      items: prev.items.map((it, i) =>
+        i === idx ? { ...it, price: String(price), income: String(income) } : it,
+      ),
+    }));
+
+    if (item.procedureId != null) {
+      setProcedures((prev) =>
+        prev.map((proc) =>
+          proc.id === item.procedureId
+            ? { ...proc, price, income, updatedAt: getToday() }
+            : proc,
+        ),
+      );
+    }
+
+    cancelItemEdit();
+  };
+
   const { handleExport, handleImport } = useBackupIO({
     sales,
     procedures,
@@ -1313,6 +1417,23 @@ export default function App() {
 
     if (!name) return;
 
+    // Пустое поле = 0 (как в форме чека), а некорректный текст — ошибка
+    const parseProcMoney = (value) =>
+      value === null || value === undefined || String(value).trim() === ""
+        ? 0
+        : parseNonNegativeMoney(value);
+    const parsedPrice = parseProcMoney(price);
+    const parsedIncome = parseProcMoney(income);
+    if (parsedPrice === null || parsedIncome === null) {
+      setConfirmData({
+        isOpen: true,
+        variant: "error",
+        title: "Некорректная сумма",
+        message: "Цену и начисление нужно указать числом, например 1500",
+      });
+      return;
+    }
+
     const today = getToday();
     const isEdit = !!editingProc;
 
@@ -1344,10 +1465,10 @@ export default function App() {
 
     const commit = () => {
       const procData = {
-        id: editingProc?.id || Date.now(),
+        id: editingProc?.id || crypto.randomUUID(),
         name,
-        price: parseNonNegativeMoney(price) ?? 0,
-        income: parseNonNegativeMoney(income) ?? 0,
+        price: parsedPrice,
+        income: parsedIncome,
         createdAt: editingProc?.createdAt || today,
         updatedAt: today,
       };
@@ -1538,6 +1659,8 @@ export default function App() {
       setProcSortMode,
     clientPinNotes,
     setClientPinNotes,
+    clientPhoneFilter,
+    setClientPhoneFilter,
     salesPinNotes,
     setSalesPinNotes,
     notifEnabled,
@@ -1551,6 +1674,10 @@ export default function App() {
     setNewClientName,
     newClientNotes,
     setNewClientNotes,
+    newClientPhone,
+    setNewClientPhone,
+    newClientAddress,
+    setNewClientAddress,
     isCalendarOpen,
     setIsCalendarOpen,
     newSale,
@@ -1758,6 +1885,8 @@ export default function App() {
     setClientSortMode,
     clientPinNotes,
     setClientPinNotes,
+    clientPhoneFilter,
+    setClientPhoneFilter,
     salesPinNotes,
     setSalesPinNotes,
     notifEnabled,
@@ -1771,6 +1900,10 @@ export default function App() {
     setNewClientName,
     newClientNotes,
     setNewClientNotes,
+    newClientPhone,
+    setNewClientPhone,
+    newClientAddress,
+    setNewClientAddress,
     isCalendarOpen,
     setIsCalendarOpen,
     newSale,
@@ -2318,30 +2451,61 @@ export default function App() {
               </div>
 
               <div className="space-y-3">
-                {(newSale.items || []).map((item, idx) => (
+                {(newSale.items || []).map((item, idx) => {
+                  const isItemEditing = itemEditId === (item.instanceId || idx);
+                  return (
                   <div
                     key={item.instanceId || idx}
                     className="space-y-3 rounded-2xl border border-white/10 bg-white/5 p-4"
                   >
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-black uppercase tracking-tight text-[#6B5BAE]">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="min-w-0 truncate text-sm font-black uppercase tracking-tight text-[#6B5BAE]">
                         {item.name}
                       </span>
 
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setNewSale((prev) => ({
-                            ...prev,
-                            items: prev.items.filter(
-                              (_, itemIdx) => itemIdx !== idx,
-                            ),
-                          }))
-                        }
-                        className="p-1 text-red-500/50"
-                      >
-                        <Trash2 size={14} />
-                      </button>
+                      <div className="flex shrink-0 items-center gap-1">
+                        {isItemEditing ? (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => requestSaveItemEdit(item, idx)}
+                              className="rounded-md bg-emerald-500/15 px-2 py-1 text-[9px] font-black uppercase tracking-widest text-emerald-400 active:scale-95"
+                            >
+                              сохранить
+                            </button>
+                            <button
+                              type="button"
+                              onClick={cancelItemEdit}
+                              className="rounded-md bg-white/10 px-2 py-1 text-[9px] font-black uppercase tracking-widest text-gray-400 active:scale-95"
+                            >
+                              отмена
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => startItemEdit(item, idx)}
+                            className="rounded-md bg-white/10 px-2 py-1 text-[9px] font-black uppercase tracking-widest text-gray-300 active:scale-95"
+                          >
+                            правка
+                          </button>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setNewSale((prev) => ({
+                              ...prev,
+                              items: prev.items.filter(
+                                (_, itemIdx) => itemIdx !== idx,
+                              ),
+                            }))
+                          }
+                          className="p-1 text-red-500/50"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-3 gap-2">
@@ -2349,18 +2513,56 @@ export default function App() {
                         <p className="mb-1 text-[7px] font-bold uppercase text-gray-500">
                           База
                         </p>
-                        <p className="font-mono text-xs font-bold">
-                          {item.price}
-                        </p>
+                        {isItemEditing ? (
+                          <input
+                            data-form-type="other"
+                            data-lpignore="true"
+                            data-1p-ignore="true"
+                            autoComplete="off"
+                            autoCorrect="off"
+                            autoCapitalize="off"
+                            spellCheck={false}
+                            type="number"
+                            inputMode="decimal"
+                            placeholder="0"
+                            className="w-full bg-transparent font-mono text-xs font-bold outline-none placeholder:text-white/20"
+                            value={itemEditPrice}
+                            onChange={(e) => setItemEditPrice(e.target.value)}
+                            enterKeyHint="next"
+                          />
+                        ) : (
+                          <p className="font-mono text-xs font-bold">
+                            {item.price}
+                          </p>
+                        )}
                       </div>
 
                       <div className="rounded-xl border border-[#6B5BAE]/20 bg-black/20 p-2">
                         <p className="mb-1 text-[7px] font-bold uppercase text-[#6B5BAE]">
                           Начисление
                         </p>
-                        <p className="font-mono text-xs font-bold">
-                          {item.income}
-                        </p>
+                        {isItemEditing ? (
+                          <input
+                            data-form-type="other"
+                            data-lpignore="true"
+                            data-1p-ignore="true"
+                            autoComplete="off"
+                            autoCorrect="off"
+                            autoCapitalize="off"
+                            spellCheck={false}
+                            type="number"
+                            inputMode="decimal"
+                            placeholder="0"
+                            className="w-full bg-transparent font-mono text-xs font-bold outline-none placeholder:text-white/20"
+                            value={itemEditIncome}
+                            onChange={(e) => setItemEditIncome(e.target.value)}
+                            enterKeyHint="done"
+                          />
+                        ) : (
+                          <p className="font-mono text-xs font-bold">
+                            {item.income}
+                          </p>
+                        )}
                       </div>
 
                       <div className="rounded-xl border border-[#6B5BAE]/30 bg-[#6B5BAE]/10 p-2">
@@ -2392,7 +2594,8 @@ export default function App() {
                       </div>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
 
               <div className="space-y-3">
@@ -2816,9 +3019,57 @@ export default function App() {
             className="w-full rounded-2xl border border-white/10 bg-white/5 py-2.5 px-3 font-bold outline-none focus:border-[#6B5BAE]/50"
             value={newClientName}
             onChange={(e) => setNewClientName(e.target.value)}
-            onKeyDown={(e) => handleNextFocus(e, clientDateRef)}
+            onKeyDown={(e) => handleNextFocus(e, clientPhoneRef)}
             enterKeyHint="next"
           />
+
+          <div className="relative">
+            <Phone
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-white/30"
+              size={15}
+            />
+            <input
+              data-form-type="other"
+              data-lpignore="true"
+              data-1p-ignore="true"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck={false}
+              ref={clientPhoneRef}
+              type="tel"
+              inputMode="tel"
+              placeholder="тел."
+              className="w-full rounded-2xl border border-white/10 bg-white/5 py-2.5 pl-9 pr-3 font-bold outline-none focus:border-[#6B5BAE]/50"
+              value={newClientPhone}
+              onChange={(e) => setNewClientPhone(e.target.value)}
+              onKeyDown={(e) => handleNextFocus(e, clientAddressRef)}
+              enterKeyHint="next"
+            />
+          </div>
+
+          <div className="relative">
+            <MapPin
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-white/30"
+              size={15}
+            />
+            <input
+              data-form-type="other"
+              data-lpignore="true"
+              data-1p-ignore="true"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="sentences"
+              spellCheck={false}
+              ref={clientAddressRef}
+              placeholder="Адрес"
+              className="w-full rounded-2xl border border-white/10 bg-white/5 py-2.5 pl-9 pr-3 font-bold outline-none focus:border-[#6B5BAE]/50"
+              value={newClientAddress}
+              onChange={(e) => setNewClientAddress(e.target.value)}
+              onKeyDown={(e) => handleNextFocus(e, clientDateRef)}
+              enterKeyHint="next"
+            />
+          </div>
 
           <div className="space-y-2">
             <p className="px-1 text-[10px] font-black uppercase tracking-widest text-gray-500">
@@ -2922,6 +3173,18 @@ export default function App() {
                 <Calendar size={13} />
                 Дата регистрации: {formatDate(selectedClient.registeredAt)}
               </div>
+              {selectedClient.phone?.trim() && (
+                <div className="mt-1 flex items-center gap-1 text-[11px] font-bold text-gray-400">
+                  <Phone size={13} />
+                  тел.: {selectedClient.phone}
+                </div>
+              )}
+              {selectedClient.address?.trim() && (
+                <div className="mt-1 flex items-center gap-1 text-[11px] font-bold text-gray-400">
+                  <MapPin size={13} />
+                  Адрес: {selectedClient.address}
+                </div>
+              )}
               <div className="mt-2 text-[10px] font-black uppercase tracking-widest text-gray-500">
                 Визитов: {selectedClientSales.length}
               </div>

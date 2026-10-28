@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { SaleCard } from '../components/ui-core';
 
-function ClientListItem({ client, sales, formatDate, openClientHistory, openEditClientModal, setConfirmData, setClients, selectedClient, setIsClientHistoryOpen, setSelectedClient }) {
+function ClientListItem({ client, sales, formatDate, openClientHistory, openEditClientModal, setConfirmData, setClients, selectedClient, setIsClientHistoryOpen, setSelectedClient, showContacts }) {
   const hasNote = !!client.notes?.trim();
   const [showNoteTip, setShowNoteTip] = React.useState(false);
   const longPressTimer = React.useRef(null);
@@ -95,6 +95,18 @@ function ClientListItem({ client, sales, formatDate, openClientHistory, openEdit
           <Calendar size={12} />
           Дата регистрации: {formatDate(client.registeredAt)}
         </div>
+        {showContacts && client.phone?.trim() && (
+          <div className="mt-0.5 flex items-center gap-1 text-[10px] font-bold leading-tight text-gray-400">
+            <Phone size={12} />
+            тел.: {client.phone}
+          </div>
+        )}
+        {showContacts && client.address?.trim() && (
+          <div className="mt-0.5 flex items-center gap-1 text-[10px] font-bold leading-tight text-gray-400">
+            <MapPin size={12} />
+            {client.address}
+          </div>
+        )}
       </div>
 
       <div className="relative flex shrink-0 gap-1">
@@ -141,7 +153,7 @@ function ClientListItem({ client, sales, formatDate, openClientHistory, openEdit
 
 export function ClientsScreen() {
   const ui = React.useContext(AppUIContext);
-  const { isModalOpen, setIsModalOpen, isClientModalOpen, setIsClientModalOpen, isProcModalOpen, setIsProcModalOpen, isStatsOpen, setIsStatsOpen, isStatsChartOpen, setIsStatsChartOpen, reportRange, setReportRange, reportRangeEditing, setReportRangeEditing, reportClients, setReportClients, reportClientSearch, setReportClientSearch, reportCategories, setReportCategories, reportServices, setReportServices, reportServiceSearch, setReportServiceSearch, reportShowFilters, setReportShowFilters, reportFilterPanel, setReportFilterPanel, reportChartType, setReportChartType, reportGroupBy, setReportGroupBy, reportDrillItem, setReportDrillItem, reportDrillSort, setReportDrillSort, isStatsBreakdownOpen, setIsStatsBreakdownOpen, isTimePickerOpen, setIsTimePickerOpen, isDatePickerOpen, setIsDatePickerOpen, calendarScreenMode, setCalendarScreenMode, calendarScreenTextValue, setCalendarScreenTextValue, calendarScreenTextError, setCalendarScreenTextError, statsBreakdownType, setStatsBreakdownType, isClientHistoryOpen, setIsClientHistoryOpen, isCalendarScreenOpen, setIsCalendarScreenOpen, showClientSuggestions, setShowClientSuggestions, backHint, setBackHint, showScrollTop, setShowScrollTop, selectedSale, setSelectedSale, saleDetailsId, setSaleDetailsId, selectedClient, setSelectedClient, selectedCategories, setSelectedCategories, searchQuery, setSearchQuery, statsPeriod, setStatsPeriod, statsClient, setStatsClient, statsClientSearch, setStatsClientSearch, statsDay, setStatsDay, statsDayMonth, setStatsDayMonth, calendarScreenMonth, setCalendarScreenMonth, customRangeEditing, setCustomRangeEditing, customRange, setCustomRange, editingProc, setEditingProc, editingClient, setEditingClient, procSearch, setProcSearch, isNotifMenuOpen, setIsNotifMenuOpen, recentProcIds, setRecentProcIds, procedureListSearch, setProcedureListSearch, clientListSearch, setClientListSearch, clientSortMode, setClientSortMode, clientPinNotes, setClientPinNotes, salesPinNotes, setSalesPinNotes, notifEnabled, setNotifEnabled, notifMinutes, setNotifMinutes, notifPendingId, setNotifPendingId, prevFiredSaleId, setPrevFiredSaleId, newClientName, setNewClientName, newClientNotes, setNewClientNotes, isCalendarOpen, setIsCalendarOpen, newSale, setNewSale, manualService, setManualService, confirmData, setConfirmData, fileInputRef, saleClientWrapRef, statsClientWrapRef, reportFilterWrapRef, saleClientRef, saleDateRef, saleTimeRef, manualNameRef, manualPriceRef, manualIncomeRef, manualSaleIncomeRef, clientInputRef, clientDateRef, procNameRef, procPriceRef, procIncomeRef, backHandlerRef, lastBackAtRef, backHintTimerRef, lastLayerCloseAtRef, lastPopstateAtRef, closeTopLayerForBack, handleBackNavigation, handleOutside, handlePopState, handleScroll, filteredSales, filteredClients, clientSuggestions, filteredProcedures, filteredStatsClients, selectedClientSales, calculateStats, dashboardMonthSales, dashboardStats, statsFilteredSales, periodStats, reportFilteredSales, reportServiceStats, getReportSaleAmount, reportChartData, reportPeriodLabel, exportReportCsv, escape, triggerDownload, reportDrillSales, statsPeriodLabel, statsBreakdownSales, statsCalendarMarkedDates, saleDetails, calendarMarkedDates, calendarScreenSales, resetSaleForm, resetClientForm, toggleCategory, handleNextFocus, isSaleFormValid, requestSaveSale, handleSaleEnterKey, handleSelectClient, handleClientNameChange, openNewClientModal, openEditClientModal, openClientHistory, openSaleDetails, openStatsBreakdown, handleSelectStatsClient, handleSelectPayrollType, openEditSale, repeatSale, requestDeleteSale, conductSale, openCalendarScreen, handleDashboardNav, SWIPE_TABS, swipeStartRef, tabDirection, setTabDirection, goToTab, handleMainTouchStart, handleMainTouchEnd, handleClientsNav, handleProceduresNav, handleStatsNav, handleStatsClose, handlePrimaryAction, handleSaveClient, saveSale, handleAddManualService, updateItemActualPrice, handleExport, handleImport, handleSaveProcedure, commit, openNewSaleModal, openNewProcedureModal, isPayrollSale, isSalonServicesSale, selectedPayrollType } = ui;
+  const { isModalOpen, setIsModalOpen, isClientModalOpen, setIsClientModalOpen, isProcModalOpen, setIsProcModalOpen, isStatsOpen, setIsStatsOpen, isStatsChartOpen, setIsStatsChartOpen, reportRange, setReportRange, reportRangeEditing, setReportRangeEditing, reportClients, setReportClients, reportClientSearch, setReportClientSearch, reportCategories, setReportCategories, reportServices, setReportServices, reportServiceSearch, setReportServiceSearch, reportShowFilters, setReportShowFilters, reportFilterPanel, setReportFilterPanel, reportChartType, setReportChartType, reportGroupBy, setReportGroupBy, reportDrillItem, setReportDrillItem, reportDrillSort, setReportDrillSort, isStatsBreakdownOpen, setIsStatsBreakdownOpen, isTimePickerOpen, setIsTimePickerOpen, isDatePickerOpen, setIsDatePickerOpen, calendarScreenMode, setCalendarScreenMode, calendarScreenTextValue, setCalendarScreenTextValue, calendarScreenTextError, setCalendarScreenTextError, statsBreakdownType, setStatsBreakdownType, isClientHistoryOpen, setIsClientHistoryOpen, isCalendarScreenOpen, setIsCalendarScreenOpen, showClientSuggestions, setShowClientSuggestions, backHint, setBackHint, showScrollTop, setShowScrollTop, selectedSale, setSelectedSale, saleDetailsId, setSaleDetailsId, selectedClient, setSelectedClient, selectedCategories, setSelectedCategories, searchQuery, setSearchQuery, statsPeriod, setStatsPeriod, statsClient, setStatsClient, statsClientSearch, setStatsClientSearch, statsDay, setStatsDay, statsDayMonth, setStatsDayMonth, calendarScreenMonth, setCalendarScreenMonth, customRangeEditing, setCustomRangeEditing, customRange, setCustomRange, editingProc, setEditingProc, editingClient, setEditingClient, procSearch, setProcSearch, isNotifMenuOpen, setIsNotifMenuOpen, recentProcIds, setRecentProcIds, procedureListSearch, setProcedureListSearch, clientListSearch, setClientListSearch, clientSortMode, setClientSortMode, clientPinNotes, setClientPinNotes, salesPinNotes, setSalesPinNotes, notifEnabled, setNotifEnabled, notifMinutes, setNotifMinutes, notifPendingId, setNotifPendingId, prevFiredSaleId, setPrevFiredSaleId, newClientName, setNewClientName, newClientNotes, setNewClientNotes, isCalendarOpen, setIsCalendarOpen, newSale, setNewSale, manualService, setManualService, confirmData, setConfirmData, fileInputRef, saleClientWrapRef, statsClientWrapRef, reportFilterWrapRef, saleClientRef, saleDateRef, saleTimeRef, manualNameRef, manualPriceRef, manualIncomeRef, manualSaleIncomeRef, clientInputRef, clientDateRef, procNameRef, procPriceRef, procIncomeRef, backHandlerRef, lastBackAtRef, backHintTimerRef, lastLayerCloseAtRef, lastPopstateAtRef, closeTopLayerForBack, handleBackNavigation, handleOutside, handlePopState, handleScroll, filteredSales, filteredClients, clientSuggestions, filteredProcedures, filteredStatsClients, selectedClientSales, calculateStats, dashboardMonthSales, dashboardStats, statsFilteredSales, periodStats, reportFilteredSales, reportServiceStats, getReportSaleAmount, reportChartData, reportPeriodLabel, exportReportCsv, escape, triggerDownload, reportDrillSales, statsPeriodLabel, statsBreakdownSales, statsCalendarMarkedDates, saleDetails, calendarMarkedDates, calendarScreenSales, resetSaleForm, resetClientForm, toggleCategory, handleNextFocus, isSaleFormValid, requestSaveSale, handleSaleEnterKey, handleSelectClient, handleClientNameChange, openNewClientModal, openEditClientModal, openClientHistory, openSaleDetails, openStatsBreakdown, handleSelectStatsClient, handleSelectPayrollType, openEditSale, repeatSale, requestDeleteSale, conductSale, openCalendarScreen, handleDashboardNav, SWIPE_TABS, swipeStartRef, tabDirection, setTabDirection, goToTab, handleMainTouchStart, handleMainTouchEnd, handleClientsNav, handleProceduresNav, handleStatsNav, handleStatsClose, handlePrimaryAction, handleSaveClient, saveSale, handleAddManualService, updateItemActualPrice, handleExport, handleImport, handleSaveProcedure, commit, openNewSaleModal, openNewProcedureModal, isPayrollSale, isSalonServicesSale, selectedPayrollType, clientPhoneFilter, setClientPhoneFilter } = ui;
 
   const sales = useAppStore(s => s.sales);
   const procedures = useAppStore(s => s.procedures);
@@ -195,6 +207,19 @@ export function ClientsScreen() {
                   >
                     <StickyNote size={15} />
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => setClientPhoneFilter((prev) => !prev)}
+                    aria-label="Фильтр по телефону"
+                    title="С номером — наверх, номера видны"
+                    className={`flex h-9 w-9 items-center justify-center rounded-xl border transition-all active:scale-95 ${
+                      clientPhoneFilter
+                        ? "border-[#6B5BAE]/40 bg-[#6B5BAE]/15 text-[#A89AE0]"
+                        : "border-white/10 bg-white/5 text-gray-300"
+                    }`}
+                  >
+                    <Phone size={15} />
+                  </button>
                 </div>
               </div>
 
@@ -239,6 +264,7 @@ export function ClientsScreen() {
                       selectedClient={selectedClient}
                       setIsClientHistoryOpen={setIsClientHistoryOpen}
                       setSelectedClient={setSelectedClient}
+                      showContacts={clientPhoneFilter}
                     />
                   ))}
                 </div>

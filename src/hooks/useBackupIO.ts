@@ -8,7 +8,7 @@ import {
   normalizeClients,
   STORAGE_KEYS,
 } from "../lib/app-core";
-import { set } from "idb-keyval";
+import { del, set } from "idb-keyval";
 import type { Sale, Procedure, Client } from "../types";
 
 export interface BackupNotifyPayload {
@@ -243,24 +243,50 @@ export function useBackupIO({
 
            await set(STORAGE_KEYS.ROLLBACK, { sales, procedures, clients, createdAt: new Date().toISOString() });
            
-           if (mode === "replace" && replaceData) {
-             await replaceData({
-               sales: importedSales,
-               procedures: importedProcedures,
-               clients: finalClients,
-             });
-           } else if (mode === "merge" && mergeData) {
-             await mergeData({
-               sales: importedSales,
-               procedures: importedProcedures,
-               clients: finalClients,
-             });
-           } else {
-             // Fallback
-             setSales(importedSales);
-             setProcedures(importedProcedures);
-             setClients(finalClients);
+           try {
+             if (mode === "replace" && replaceData) {
+               await replaceData({
+                 sales: importedSales,
+                 procedures: importedProcedures,
+                 clients: finalClients,
+               });
+             } else if (mode === "merge" && mergeData) {
+               await mergeData({
+                 sales: importedSales,
+                 procedures: importedProcedures,
+                 clients: finalClients,
+               });
+             } else {
+               // Fallback
+               setSales(importedSales);
+               setProcedures(importedProcedures);
+               setClients(finalClients);
+             }
+           } catch (applyError) {
+             // Импорт не применился — откатываем данные к снапшоту до импорта
+             console.error("Import apply error:", applyError);
+             try {
+               if (replaceData) {
+                 await replaceData({ sales, procedures, clients });
+               } else {
+                 setSales(sales);
+                 setProcedures(procedures);
+                 setClients(clients);
+               }
+             } catch (restoreError) {
+               console.error("Rollback restore error:", restoreError);
+             }
+             del(STORAGE_KEYS.ROLLBACK).catch(() => {});
+             showError(
+               "Не удалось применить резервную копию. Данные возвращены к состоянию до импорта.",
+             );
+             return;
            }
+
+           // Импорт прошёл успешно — снапшот отката больше не нужен.
+           // (Если приложение упадёт до этой строки, снапшот найдёт и
+           // применит initStore при следующем запуске.)
+           del(STORAGE_KEYS.ROLLBACK).catch(() => {});
 
           notify({
             variant: "info",

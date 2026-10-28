@@ -28,7 +28,7 @@ export const CATEGORY_DOT_COLOR: Record<string, string> = {
 export const CURRENCY = "₽";
 
 /** Текущая версия приложения (держать в синхроне с versionName в android/app/build.gradle). */
-export const APP_VERSION = "2.0.42";
+export const APP_VERSION = "2.0.43";
 
 /**
  * Компактный формат чисел: разряды разделяются ТОНКИМ пробелом (U+2009)
@@ -337,6 +337,8 @@ export const normalizeClients = (clients: unknown, sales: Sale[]): Client[] => {
   return list.map((client) => ({
     id: client.id || crypto.randomUUID(),
     name: client.name || "",
+    phone: client.phone || "",
+    address: client.address || "",
     registeredAt: client.registeredAt || inferRegisteredAt(client.name || "", sales),
     notes: client.notes || "",
     archived: Boolean(client.archived),
