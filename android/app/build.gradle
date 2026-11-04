@@ -1,6 +1,7 @@
 apply plugin: 'com.android.application'
 
-// Signing credentials: android/local.properties (gitignored) or env vars.
+// Signing credentials must be provided locally via environment variables or
+// android/local.properties. Never resolve keystores outside the project silently.
 def kasSigningProps = new Properties()
 def kasLocalPropsFile = rootProject.file('local.properties')
 if (kasLocalPropsFile.exists()) {
@@ -10,6 +11,12 @@ def kasKeystoreFile = kasSigningProps.getProperty('kasKeystoreFile') ?: System.g
 def kasKeystorePassword = kasSigningProps.getProperty('kasKeystorePassword') ?: System.getenv('KAS_KEYSTORE_PASSWORD')
 def kasKeyAlias = kasSigningProps.getProperty('kasKeyAlias') ?: System.getenv('KAS_KEY_ALIAS')
 def kasKeyPassword = kasSigningProps.getProperty('kasKeyPassword') ?: System.getenv('KAS_KEY_PASSWORD')
+if (kasKeystoreFile) {
+    def keystore = file(kasKeystoreFile)
+    if (!keystore.canonicalPath.startsWith(rootProject.projectDir.canonicalPath + File.separator)) {
+        throw new GradleException('Keystore must be stored inside the KAS-buh project directory.')
+    }
+}
 
 android {
     namespace "com.kas.buhgalteriya"
