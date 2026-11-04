@@ -52,6 +52,7 @@ export default defineConfig({
     },
   },
   build: {
+    base: '/kas-buh/',
     outDir: 'build',
     assetsDir: 'assets',
   },
