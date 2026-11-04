@@ -4,6 +4,7 @@ node_modules/
 # Артефакты сборки
 dist/
 build/
+build-pages/
 *.apk
 *.idsig
 *.tsbuildinfo

@@ -3,7 +3,16 @@ import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import path from 'path';
 
-export default defineConfig({
+// Режим 'pages' — сборка под GitHub Pages (репозиторий отдаёт сайт из
+// подпапки /KAS-buh/). Обычный билд остаётся с base '/' — так Capacitor
+// WebView находит ассеты в APK, а Netlify/локальный превью — на корне.
+const PAGES_BASE = '/KAS-buh/';
+
+export default defineConfig(({ mode }) => {
+  const base = mode === 'pages' ? PAGES_BASE : '/';
+
+  return {
+  base,
   plugins: [
     react(),
     VitePWA({
@@ -17,8 +26,8 @@ export default defineConfig({
         short_name: 'KAS Бух',
         description: 'Учёт чеков, услуг и доходов — работает офлайн',
         lang: 'ru',
-        start_url: '/',
-        scope: '/',
+        start_url: base,
+        scope: base,
         display: 'standalone',
         orientation: 'portrait',
         theme_color: '#0F1115',
@@ -36,7 +45,7 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-        navigateFallback: '/index.html',
+        navigateFallback: `${base}index.html`,
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
         skipWaiting: true,
         clientsClaim: true,
@@ -52,8 +61,8 @@ export default defineConfig({
     },
   },
   build: {
-    base: '/kas-buh/',
-    outDir: 'build',
+    outDir: mode === 'pages' ? 'build-pages' : 'build',
     assetsDir: 'assets',
   },
+  };
 });

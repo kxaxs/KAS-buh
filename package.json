@@ -31,6 +31,7 @@
     "scripts":  {
                     "dev":  "vite",
                     "build":  "tsc -p tsconfig.json \u0026\u0026 vite build",
+                    "build:pages":  "vite build --mode pages",
                     "preview":  "vite preview",
                     "pwa:pack":  "powershell -ExecutionPolicy Bypass -File scripts/pwa/pack-pwa.ps1 -ProjectDir .",
                     "pwa:check":  "node scripts/pwa/smoke-pwa.cjs",
