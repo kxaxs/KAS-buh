@@ -4462,6 +4462,38 @@ export default function App() {
                       ))}
                     </div>
                   )}
+
+                  {calendarScreenSelectedDate && (() => {
+                    const dayStats = calculateStats(calendarScreenSales);
+                    const daySummaryRows = [
+                      { label: "Оборот", value: dayStats.turnover, color: "#6B5BAE" },
+                      { label: "Начисление", value: dayStats.accrual, color: "#A89AE0" },
+                      { label: "Домашние", value: dayStats.homeIncome, color: "#10B981" },
+                      { label: "Калым", value: dayStats.kalymIncome, color: "#F59E0B" },
+                      { label: "Чаевые", value: dayStats.tipsAmount, color: "#EC4899" },
+                      { label: "Салон зп", value: dayStats.salonCleanIncome, color: "#38BDF8" },
+                    ].filter((row) => row.value > 0);
+                    if (daySummaryRows.length === 0) return null;
+                    return (
+                      <div className="mt-3 ml-auto w-1/2 rounded-2xl border border-white/5 bg-[#1E222A] px-3 py-3">
+                        <div className="flex flex-col gap-2">
+                          {daySummaryRows.map((row) => (
+                            <div key={row.label} className="flex items-center justify-between gap-2">
+                              <span
+                                className="shrink-0 text-[11px] font-bold uppercase tracking-wider"
+                                style={{ color: row.color }}
+                              >
+                                {row.label}
+                              </span>
+                              <span className="whitespace-nowrap text-right font-mono text-sm font-black leading-none text-white/90">
+                                {formatNumber(row.value)}&nbsp;{CURRENCY}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
             </div>
